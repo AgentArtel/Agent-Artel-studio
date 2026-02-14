@@ -10,7 +10,11 @@ export type NodeType =
   | 'webhook'
   | 'schedule'
   | 'if'
-  | 'merge';
+  | 'merge'
+  | 'image-gen'
+  | 'gemini-chat'
+  | 'gemini-embed'
+  | 'gemini-vision';
 
 export interface NodePosition {
   x: number;

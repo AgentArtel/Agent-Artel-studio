@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, X, Bot, MessageSquare, Database, Globe, Code2, Webhook, Sparkles, Clock, GitBranch, Filter } from 'lucide-react';
+import { Search, X, Bot, MessageSquare, Database, Globe, Code2, Webhook, Sparkles, Clock, GitBranch, Filter, ImageIcon, Eye } from 'lucide-react';
 import type { NodeType } from '@/types';
 
 interface NodeCategory {
@@ -56,6 +56,16 @@ const nodeCategories: NodeCategory[] = [
       { id: 'code-tool', type: 'code-tool', label: 'Code', description: 'Run JavaScript or Python', icon: Code2 },
       { id: 'if-condition', type: 'if', label: 'If', description: 'Conditional branching', icon: GitBranch },
       { id: 'merge', type: 'merge', label: 'Merge', description: 'Merge multiple inputs', icon: Filter },
+    ],
+  },
+  {
+    id: 'gemini',
+    label: 'Gemini AI',
+    nodes: [
+      { id: 'image-gen', type: 'image-gen', label: 'Image Generator', description: 'Generate images via Gemini Imagen', icon: ImageIcon },
+      { id: 'gemini-chat', type: 'gemini-chat', label: 'Gemini Chat', description: 'Text/chat completions via Gemini', icon: MessageSquare },
+      { id: 'gemini-embed', type: 'gemini-embed', label: 'Gemini Embed', description: 'Text embeddings via Gemini', icon: Database },
+      { id: 'gemini-vision', type: 'gemini-vision', label: 'Gemini Vision', description: 'Image understanding via Gemini', icon: Eye },
     ],
   },
 ];

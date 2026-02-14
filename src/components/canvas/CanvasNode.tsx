@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Check, Bot, MessageSquare, Database, Globe, Code2, Webhook, Sparkles } from 'lucide-react';
+import { Check, Bot, MessageSquare, Database, Globe, Code2, Webhook, Sparkles, ImageIcon, Eye } from 'lucide-react';
 import type { NodeData } from '@/types';
 import type { PortType } from '@/lib/portRegistry';
 
@@ -25,6 +25,10 @@ const nodeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   'webhook': Webhook,
   'openai-chat': Sparkles,
   'anthropic-chat': Sparkles,
+  'image-gen': ImageIcon,
+  'gemini-chat': MessageSquare,
+  'gemini-embed': Database,
+  'gemini-vision': Eye,
 };
 
 const nodeColors: Record<string, string> = {
@@ -36,6 +40,10 @@ const nodeColors: Record<string, string> = {
   'webhook': 'text-orange-400',
   'openai-chat': 'text-green',
   'anthropic-chat': 'text-green',
+  'image-gen': 'text-pink-400',
+  'gemini-chat': 'text-emerald-400',
+  'gemini-embed': 'text-indigo-400',
+  'gemini-vision': 'text-amber-400',
 };
 
 export const CanvasNode: React.FC<CanvasNodeProps> = ({
