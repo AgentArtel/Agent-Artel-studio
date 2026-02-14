@@ -1,40 +1,72 @@
 import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { formatRelativeTime } from '@/lib/formatRelativeTime';
 import { ExecutionRow } from '@/components/execution/ExecutionRow';
 import { SearchBar } from '@/components/workflow/SearchBar';
 import { EmptyState } from '@/components/ui-custom/EmptyState';
 import { Chip } from '@/components/ui-custom/Chip';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Play, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-
-const mockExecutions = [
-  { id: '1', workflowName: 'AI Content Generator', status: 'success' as const, startedAt: '2 minutes ago', duration: 2450 },
-  { id: '2', workflowName: 'Customer Support Bot', status: 'running' as const, startedAt: '5 minutes ago' },
-  { id: '3', workflowName: 'Data Sync', status: 'error' as const, startedAt: '1 hour ago', duration: 5600 },
-  { id: '4', workflowName: 'Email Automation', status: 'success' as const, startedAt: '2 hours ago', duration: 1200 },
-  { id: '5', workflowName: 'Slack Notifications', status: 'success' as const, startedAt: '3 hours ago', duration: 800 },
-  { id: '6', workflowName: 'Lead Scoring', status: 'error' as const, startedAt: '5 hours ago', duration: 3200 },
-  { id: '7', workflowName: 'AI Content Generator', status: 'success' as const, startedAt: 'Yesterday', duration: 2100 },
-];
 
 interface ExecutionHistoryProps {
   onNavigate: (page: string) => void;
 }
 
 export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ onNavigate }) => {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const filteredExecutions = mockExecutions.filter(execution => {
+  const { data: dbExecutions = [], isLoading } = useQuery({
+    queryKey: ['studio-executions'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .schema('studio')
+        .from('executions')
+        .select('*')
+        .order('started_at', { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const { data: dbWorkflowNames = [] } = useQuery({
+    queryKey: ['studio-workflow-names'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .schema('studio')
+        .from('workflows')
+        .select('id, name');
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const nameMap: Record<string, string> = Object.fromEntries(
+    dbWorkflowNames.map((w: any) => [w.id, w.name])
+  );
+
+  const executions = dbExecutions.map((e: any) => ({
+    id: e.id,
+    workflowName: nameMap[e.workflow_id] ?? 'Unknown Workflow',
+    status: e.status as 'success' | 'error' | 'running' | 'pending',
+    startedAt: formatRelativeTime(e.started_at),
+    duration: e.duration_ms,
+  }));
+
+  const filteredExecutions = executions.filter((execution: any) => {
     const matchesSearch = execution.workflowName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || execution.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const statusCounts = {
-    all: mockExecutions.length,
-    success: mockExecutions.filter(e => e.status === 'success').length,
-    error: mockExecutions.filter(e => e.status === 'error').length,
-    running: mockExecutions.filter(e => e.status === 'running').length,
+    all: executions.length,
+    success: executions.filter((e: any) => e.status === 'success').length,
+    error: executions.filter((e: any) => e.status === 'error').length,
+    running: executions.filter((e: any) => e.status === 'running').length,
   };
 
   return (
@@ -46,7 +78,10 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ onNavigate }
         </div>
         <button
           className="flex items-center gap-2 px-4 py-2 bg-dark-100 border border-white/5 rounded-lg text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-          onClick={() => { setSearchQuery(''); setStatusFilter('all'); toast.info('Refreshed'); }}
+          onClick={() => {
+            queryClient.invalidateQueries({ queryKey: ['studio-executions'] });
+            toast.info('Refreshed');
+          }}
         >
           <RotateCcw className="w-4 h-4" /> Refresh
         </button>
@@ -62,9 +97,15 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ onNavigate }
         </div>
       </div>
 
-      {filteredExecutions.length > 0 ? (
+      {isLoading ? (
         <div className="space-y-2">
-          {filteredExecutions.map((execution) => (
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-xl bg-dark-100/50" />
+          ))}
+        </div>
+      ) : filteredExecutions.length > 0 ? (
+        <div className="space-y-2">
+          {filteredExecutions.map((execution: any) => (
             <ExecutionRow key={execution.id} {...execution} onView={() => toast.info('Execution detail view coming soon')} onRetry={() => toast.info('Retrying execution...')} />
           ))}
         </div>
