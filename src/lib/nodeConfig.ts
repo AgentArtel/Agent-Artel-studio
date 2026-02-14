@@ -490,6 +490,166 @@ const webhookConfigSchema: NodeConfigSchema = {
   ],
 };
 
+// Image Generator Config Schema
+const imageGenConfigSchema: NodeConfigSchema = {
+  nodeType: 'image-gen',
+  title: 'Image Generator',
+  description: 'Generate images via Gemini Imagen',
+  sections: [
+    {
+      id: 'image',
+      title: 'Image Settings',
+      fields: [
+        {
+          id: 'prompt',
+          type: 'textarea',
+          label: 'Prompt',
+          placeholder: 'Describe the image you want to generate...',
+          required: true,
+        },
+        {
+          id: 'style',
+          type: 'select',
+          label: 'Style',
+          defaultValue: 'vivid',
+          options: [
+            { label: 'Vivid', value: 'vivid' },
+            { label: 'Photorealistic', value: 'photorealistic' },
+            { label: 'Anime', value: 'anime' },
+            { label: 'Watercolor', value: 'watercolor' },
+            { label: 'Pixel Art', value: 'pixel-art' },
+            { label: 'Film Noir', value: 'film-noir' },
+          ],
+        },
+        {
+          id: 'agentId',
+          type: 'text',
+          label: 'Agent ID',
+          placeholder: 'Optional agent identifier',
+          description: 'For logging which agent requested the image',
+        },
+      ],
+    },
+  ],
+};
+
+// Gemini Chat Config Schema
+const geminiChatConfigSchema: NodeConfigSchema = {
+  nodeType: 'gemini-chat',
+  title: 'Gemini Chat',
+  description: 'Text/chat completions via Gemini',
+  sections: [
+    {
+      id: 'model',
+      title: 'Model Settings',
+      fields: [
+        {
+          id: 'model',
+          type: 'select',
+          label: 'Model',
+          defaultValue: 'gemini-2.5-flash',
+          options: [
+            { label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash', description: 'Fast and efficient' },
+            { label: 'Gemini 2.5 Pro', value: 'gemini-2.5-pro', description: 'Most capable' },
+          ],
+        },
+        {
+          id: 'systemPrompt',
+          type: 'textarea',
+          label: 'System Prompt',
+          placeholder: 'Enter system instructions...',
+          description: 'Instructions that define model behavior',
+        },
+        {
+          id: 'temperature',
+          type: 'number',
+          label: 'Temperature',
+          defaultValue: 0.7,
+          validation: { min: 0, max: 2 },
+          description: 'Controls randomness',
+        },
+        {
+          id: 'maxTokens',
+          type: 'number',
+          label: 'Max Tokens',
+          defaultValue: 4096,
+          validation: { min: 1, max: 65536 },
+        },
+      ],
+    },
+  ],
+};
+
+// Gemini Embed Config Schema
+const geminiEmbedConfigSchema: NodeConfigSchema = {
+  nodeType: 'gemini-embed',
+  title: 'Gemini Embed',
+  description: 'Text embeddings via Gemini',
+  sections: [
+    {
+      id: 'embed',
+      title: 'Embedding Settings',
+      fields: [
+        {
+          id: 'model',
+          type: 'select',
+          label: 'Model',
+          defaultValue: 'text-embedding-004',
+          options: [
+            { label: 'Text Embedding 004', value: 'text-embedding-004' },
+          ],
+        },
+        {
+          id: 'text',
+          type: 'textarea',
+          label: 'Input Text',
+          placeholder: 'Text to embed...',
+          required: true,
+        },
+      ],
+    },
+  ],
+};
+
+// Gemini Vision Config Schema
+const geminiVisionConfigSchema: NodeConfigSchema = {
+  nodeType: 'gemini-vision',
+  title: 'Gemini Vision',
+  description: 'Image understanding via Gemini',
+  sections: [
+    {
+      id: 'vision',
+      title: 'Vision Settings',
+      fields: [
+        {
+          id: 'model',
+          type: 'select',
+          label: 'Model',
+          defaultValue: 'gemini-2.5-flash',
+          options: [
+            { label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash' },
+            { label: 'Gemini 2.5 Pro', value: 'gemini-2.5-pro' },
+          ],
+        },
+        {
+          id: 'prompt',
+          type: 'textarea',
+          label: 'Prompt',
+          placeholder: 'What would you like to know about the image?',
+          required: true,
+        },
+        {
+          id: 'imageUrl',
+          type: 'text',
+          label: 'Image URL',
+          placeholder: 'https://example.com/image.png',
+          required: true,
+        },
+      ],
+    },
+  ],
+};
+
 // Schema registry
 const schemas: Record<string, NodeConfigSchema> = {
   'ai-agent': aiAgentConfigSchema,
@@ -500,6 +660,10 @@ const schemas: Record<string, NodeConfigSchema> = {
   'openai-chat': openaiChatConfigSchema,
   'anthropic-chat': anthropicChatConfigSchema,
   'webhook': webhookConfigSchema,
+  'image-gen': imageGenConfigSchema,
+  'gemini-chat': geminiChatConfigSchema,
+  'gemini-embed': geminiEmbedConfigSchema,
+  'gemini-vision': geminiVisionConfigSchema,
 };
 
 export function getNodeConfigSchema(nodeType: NodeType): NodeConfigSchema | undefined {

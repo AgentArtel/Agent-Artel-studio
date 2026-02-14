@@ -6,3 +6,4 @@ export { HTTPRequestNode } from './HTTPRequestNode';
 export { CodeNode } from './CodeNode';
 export { WebhookNode } from './WebhookNode';
 export { NodeCard } from './NodeCard';
+export { ImageGenNode } from './ImageGenNode';
