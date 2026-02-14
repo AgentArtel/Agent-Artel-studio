@@ -84,8 +84,11 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
   return (
     <div
       className={cn(
-        'absolute w-[200px] rounded-xl bg-dark-100/95 backdrop-blur-sm cursor-grab active:cursor-grabbing select-none',
+        'absolute w-[220px] rounded-xl border backdrop-blur-sm cursor-grab active:cursor-grabbing select-none pb-4',
         'transition-all duration-fast ease-out-quart',
+        (data.type === 'openai-chat' || data.type === 'anthropic-chat')
+          ? 'bg-gradient-green border-[rgba(121,241,129,0.4)]'
+          : 'bg-dark-100/95',
         getBorderStyle(),
         data.isDeactivated && 'opacity-60',
         className
@@ -93,7 +96,7 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
       style={{
         left: data.position.x,
         top: data.position.y,
-        animation: 'node-appear 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        animation: 'nodeAppear 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       }}
       onMouseDown={handleMouseDown}
       onClick={onClick}

@@ -61,10 +61,10 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({
         <path
           d={pathData}
           fill="none"
-          stroke={isSelected ? '#79F181' : '#3A3A3A'}
-          strokeWidth={isSelected ? 6 : 4}
-          opacity={isSelected ? 0.3 : 0.2}
-          filter={isSelected ? `url(#glow-${connection.id})` : undefined}
+          stroke={isSelected ? '#79F181' : '#4A4A4A'}
+          strokeWidth={isSelected ? 8 : 6}
+          opacity={isSelected ? 0.3 : 0.15}
+          filter={`url(#glow-${connection.id})`}
           className="pointer-events-auto cursor-pointer"
           onClick={onClick}
         />
@@ -73,9 +73,10 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({
         <path
           d={pathData}
           fill="none"
-          stroke={isSelected ? `url(#gradient-${connection.id})` : '#3A3A3A'}
-          strokeWidth={isSelected ? 2.5 : 2}
+          stroke={isSelected ? `url(#gradient-${connection.id})` : `url(#gradient-${connection.id})`}
+          strokeWidth={isSelected ? 2.5 : 1.5}
           strokeLinecap="round"
+          opacity={isSelected ? 1 : 0.6}
           className="pointer-events-auto cursor-pointer transition-all duration-200"
           onClick={onClick}
         />
