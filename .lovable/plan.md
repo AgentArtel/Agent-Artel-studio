@@ -1,83 +1,59 @@
 
+# Phase 1: Navigation Wiring
 
-# Full App Assembly: Dashboard, Pages, Routing, Navigation
+Wire up all cross-page navigation by passing an `onNavigate` callback from `App.tsx` into every page, then connecting it to all buttons that should trigger page changes.
 
-## Overview
-Copy all remaining reference app pages, components, and routing into the active project. The app currently only shows the workflow editor canvas -- after this, it becomes a full multi-page application with sidebar navigation, dashboard, workflow list, execution history, credentials manager, agent library, settings, and component showcase.
+## Changes
 
-**Rule: All mock/placeholder data text rendered in the UI will be italicized** to clearly distinguish it from real application chrome.
+### 1. `src/App.tsx` -- Pass `onNavigate` to all pages
 
-## What Gets Created
+Define `const onNavigate = (page: string) => setCurrentPage(page as Page)` and pass it as a prop to Dashboard, WorkflowList, ExecutionHistory, Credentials, AgentLibrary, and Settings in the `renderPage()` switch statement.
 
-### New Component Directories and Files (22 new files)
+### 2. `src/pages/Dashboard.tsx` -- Accept `onNavigate` prop, wire 4 triggers
 
-**`src/components/dashboard/` (4 files)**
-- `StatCard.tsx` -- Stat cards with trend indicators and icons
-- `ActivityFeed.tsx` -- Activity timeline with typed icons
-- `ExecutionChart.tsx` -- SVG sparkline chart with gradient fill
-- `WorkflowPreview.tsx` -- Compact workflow cards for the dashboard grid
+- Add `onNavigate` to component props
+- "Browse Templates" button: `onClick={() => onNavigate('templates')}`
+- "Create Workflow" button: `onClick={() => onNavigate('editor')}`
+- "View All" button: `onClick={() => onNavigate('workflows')}`
+- WorkflowPreview `onEdit`: `() => onNavigate('editor')`
+- WorkflowPreview `onRun`: show toast "Workflow started" (import `toast` from sonner)
 
-**`src/components/workflow/` (3 files)**
-- `SearchBar.tsx` -- Search input with clear button
-- `WorkflowCard.tsx` -- Full workflow card with status badge, node count, execution stats
-- `WorkflowFilters.tsx` -- Status filter tabs and sort dropdown
+### 3. `src/pages/WorkflowList.tsx` -- Accept `onNavigate` prop, wire 3 triggers
 
-**`src/components/execution/` (1 file)**
-- `ExecutionRow.tsx` -- Execution history row with status badge, duration, retry button
+- "Create Workflow" button: `onClick={() => onNavigate('editor')}`
+- WorkflowCard `onEdit`: `() => onNavigate('editor')`
+- EmptyState `onAction`: `() => onNavigate('editor')`
 
-**`src/components/credentials/` (3 files)**
-- `CredentialCard.tsx` -- Credential card with connection status indicator
-- `CredentialModal.tsx` -- Add/edit credential modal with test connection
-- `index.ts` -- Barrel export
+### 4. `src/pages/ExecutionHistory.tsx` -- Wire row view action
 
-**`src/components/templates/` (1 file)**
-- `TemplateCard.tsx` -- Template card with difficulty badge, category chip, preview area
+- Accept `onNavigate` prop (unused for now, but consistent interface)
+- ExecutionRow `onView`: show toast "Execution detail view coming soon"
+- Import `toast` from sonner
 
-**`src/components/onboarding/` (3 files)**
-- `OnboardingModal.tsx` -- Multi-step welcome wizard
-- `OnboardingStep.tsx` -- Individual step with number/check indicator
-- `index.ts` -- Barrel export
+### 5. `src/pages/AgentLibrary.tsx` -- Wire template actions
 
-**`src/components/forms/` (5 files)**
-- `FormInput.tsx` -- Text/password input with visibility toggle
-- `FormSelect.tsx` -- Custom dropdown select with search
-- `FormTextarea.tsx` -- Multi-line text input
-- `FormToggle.tsx` -- Toggle switch with label
-- `index.ts` -- Barrel export
+- Accept `onNavigate` prop
+- TemplateCard `onUse`: `() => onNavigate('editor')`
+- TemplateCard `onPreview`: show toast "Template preview coming soon"
+- Import `toast` from sonner
 
-### New Pages (6 files)
-- `src/pages/Dashboard.tsx` -- Stats grid, recent workflows, execution chart, activity feed
-- `src/pages/WorkflowList.tsx` -- Searchable/filterable workflow grid with view toggle
-- `src/pages/ExecutionHistory.tsx` -- Filterable execution log with status counts
-- `src/pages/Credentials.tsx` -- Credentials manager with add modal
-- `src/pages/AgentLibrary.tsx` -- Template browser with category filters
-- `src/pages/Settings.tsx` -- Profile, notifications, preferences, security sections
-- `src/pages/ShowcasePage.tsx` -- Full component gallery with tabbed sections
+### 6. `src/pages/Settings.tsx` -- Wire security section buttons
 
-### Modified Files (2 files)
-- `src/lib/utils.ts` -- Add `formatDate`, `formatTime`, `formatDuration`, `truncate`, `generateId` functions
-- `src/App.tsx` -- Replace router with state-based navigation, add Sidebar layout, wire up all 8 pages (dashboard as default)
+- Accept `onNavigate` prop
+- "Change Password": show toast "Coming soon"
+- "Two-Factor Auth": show toast "Coming soon"
+- "API Keys": `onClick={() => onNavigate('credentials')}`
+- "Delete Account": show toast "Account deletion is not available in demo mode"
+- Import `toast` from sonner
 
-## Mock Data Italicization Rule
+## Files Modified (7 total)
 
-All mock/placeholder data strings (names, descriptions, timestamps, stat values) rendered in the UI will be wrapped in `<em>` or `<i>` tags, or use the `italic` Tailwind class. This applies to:
-- Dashboard stat values and subtitles (e.g., "12", "3 added this month")
-- Workflow names and descriptions in lists
-- Execution history entries (workflow names, timestamps, durations)
-- Credential names and service types
-- Template names and descriptions
-- Activity feed messages and timestamps
-- Settings profile data (e.g., "John Doe", "john@example.com")
-
-## Technical Details
-
-- All files are direct copies from `reference-app/src/` with one modification: mock data text gets `italic` class
-- All imports use `@/` path alias which resolves identically in both projects
-- The `Sidebar` component already exists in `src/components/ui-custom/Sidebar.tsx` with all nav items pre-configured
-- The `SidebarItem` component already exists and handles active state, collapsed mode, and click handlers
-- Settings page uses `ui-custom/FormInput` (has `defaultValue` via HTML attributes) and `ui-custom/FormToggle` (has `description` prop) -- both already migrated and compatible
-- `CredentialModal` depends on `forms/FormInput` and `forms/FormSelect` (new directory, not the ui-custom versions)
-
-## Result
-
-Opening the app lands on the **Dashboard** with sidebar navigation. Users can navigate between all 8 sections. Clicking "Workflow Editor" in the sidebar opens the full-screen canvas (no sidebar). All mock data appears in italics so it's clearly placeholder content.
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Add `onNavigate` callback, pass to 6 pages |
+| `src/pages/Dashboard.tsx` | Add prop, wire 4 buttons + run toast |
+| `src/pages/WorkflowList.tsx` | Add prop, wire 3 buttons |
+| `src/pages/ExecutionHistory.tsx` | Add prop, wire view toast |
+| `src/pages/AgentLibrary.tsx` | Add prop, wire use/preview |
+| `src/pages/Settings.tsx` | Add prop, wire 4 security buttons |
+| `src/pages/Credentials.tsx` | Add prop (unused now, consistent interface) |
