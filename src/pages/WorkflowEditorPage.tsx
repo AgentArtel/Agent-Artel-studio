@@ -560,10 +560,14 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
         'memory': { title: 'Memory', subtitle: 'Chat memory' },
       };
       const meta = titleMap[nodeType] || { title: nodeType.charAt(0).toUpperCase() + nodeType.slice(1), subtitle: 'New node' };
+      // Offset new nodes so they don't stack on top of each other
+      const offsetIndex = nodes.length;
+      const baseX = 300 + (offsetIndex % 4) * 260;
+      const baseY = 200 + Math.floor(offsetIndex / 4) * 160;
       const newNode: NodeData = {
         id: `node-${Date.now()}`,
         type: nodeType,
-        position: { x: 300, y: 200 },
+        position: { x: baseX, y: baseY },
         title: meta.title,
         subtitle: meta.subtitle,
         isConfigured: false,

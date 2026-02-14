@@ -94,9 +94,11 @@ export const NodeSearchPalette: React.FC<NodeSearchPaletteProps> = ({
     node.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Focus input when opened
+  // Focus input and reset search when opened
   useEffect(() => {
     if (isOpen) {
+      setSearchQuery('');
+      setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
