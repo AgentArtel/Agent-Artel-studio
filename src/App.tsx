@@ -22,17 +22,19 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  const onNavigate = (page: string) => setCurrentPage(page as Page);
+
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard': return <Dashboard />;
-      case 'workflows': return <WorkflowList />;
-      case 'executions': return <ExecutionHistory />;
-      case 'credentials': return <Credentials />;
-      case 'templates': return <AgentLibrary />;
-      case 'settings': return <Settings />;
+      case 'dashboard': return <Dashboard onNavigate={onNavigate} />;
+      case 'workflows': return <WorkflowList onNavigate={onNavigate} />;
+      case 'executions': return <ExecutionHistory onNavigate={onNavigate} />;
+      case 'credentials': return <Credentials onNavigate={onNavigate} />;
+      case 'templates': return <AgentLibrary onNavigate={onNavigate} />;
+      case 'settings': return <Settings onNavigate={onNavigate} />;
       case 'editor': return <WorkflowEditorPage />;
       case 'showcase': return <ShowcasePage />;
-      default: return <Dashboard />;
+      default: return <Dashboard onNavigate={onNavigate} />;
     }
   };
 

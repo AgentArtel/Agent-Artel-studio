@@ -5,6 +5,7 @@ import { WorkflowPreview } from '@/components/dashboard/WorkflowPreview';
 import { ExecutionChart } from '@/components/dashboard/ExecutionChart';
 import { Button } from '@/components/ui/button';
 import { Zap, Play, CheckCircle, Clock, Plus, Sparkles, ArrowRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 const mockActivities = [
   { id: '1', type: 'success' as const, message: 'Workflow executed successfully', workflowName: 'AI Content Generator', timestamp: '2m ago' },
@@ -24,7 +25,11 @@ const mockWorkflows = [
 const chartData = [12, 19, 15, 25, 22, 30, 28, 35, 42, 38, 45, 52];
 const chartLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onNavigate: (page: string) => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-dark text-white p-6">
       <div className="flex items-center justify-between mb-8">
@@ -33,10 +38,10 @@ export const Dashboard: React.FC = () => {
           <p className="text-white/50 mt-1">Welcome back! Here's what's happening with your workflows.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/5">
+          <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/5" onClick={() => onNavigate('templates')}>
             <Sparkles className="w-4 h-4 mr-2" /> Browse Templates
           </Button>
-          <Button className="bg-green text-dark hover:bg-green-light">
+          <Button className="bg-green text-dark hover:bg-green-light" onClick={() => onNavigate('editor')}>
             <Plus className="w-4 h-4 mr-2" /> Create Workflow
           </Button>
         </div>
@@ -53,13 +58,13 @@ export const Dashboard: React.FC = () => {
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-white">Recent Workflows</h2>
-            <Button variant="ghost" size="sm" className="text-green hover:text-green-light">
+            <Button variant="ghost" size="sm" className="text-green hover:text-green-light" onClick={() => onNavigate('workflows')}>
               View All <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {mockWorkflows.map((workflow) => (
-              <WorkflowPreview key={workflow.id} {...workflow} onRun={() => {}} onEdit={() => {}} />
+              <WorkflowPreview key={workflow.id} {...workflow} onRun={() => toast.success(`Workflow "${workflow.name}" started`)} onEdit={() => onNavigate('editor')} />
             ))}
           </div>
         </div>

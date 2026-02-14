@@ -13,7 +13,11 @@ const mockCredentials = [
   { id: '4', name: 'Stripe Test Key', service: 'stripe', maskedValue: 'sk_test_abcdefghijklmnopqrstuvwxyz', lastUsed: '1 week ago' },
 ];
 
-export const Credentials: React.FC = () => {
+interface CredentialsProps {
+  onNavigate: (page: string) => void;
+}
+
+export const Credentials: React.FC<CredentialsProps> = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 

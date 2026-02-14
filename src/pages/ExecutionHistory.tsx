@@ -4,6 +4,7 @@ import { SearchBar } from '@/components/workflow/SearchBar';
 import { EmptyState } from '@/components/ui-custom/EmptyState';
 import { Chip } from '@/components/ui-custom/Chip';
 import { Play, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 
 const mockExecutions = [
   { id: '1', workflowName: 'AI Content Generator', status: 'success' as const, startedAt: '2 minutes ago', duration: 2450 },
@@ -15,7 +16,11 @@ const mockExecutions = [
   { id: '7', workflowName: 'AI Content Generator', status: 'success' as const, startedAt: 'Yesterday', duration: 2100 },
 ];
 
-export const ExecutionHistory: React.FC = () => {
+interface ExecutionHistoryProps {
+  onNavigate: (page: string) => void;
+}
+
+export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -57,7 +62,7 @@ export const ExecutionHistory: React.FC = () => {
       {filteredExecutions.length > 0 ? (
         <div className="space-y-2">
           {filteredExecutions.map((execution) => (
-            <ExecutionRow key={execution.id} {...execution} onView={() => {}} onRetry={() => {}} />
+            <ExecutionRow key={execution.id} {...execution} onView={() => toast.info('Execution detail view coming soon')} onRetry={() => {}} />
           ))}
         </div>
       ) : (
