@@ -18,37 +18,44 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Plus, Trash2, LayoutGrid, Play, Square, Loader2 } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, LayoutGrid, Play, Square, Loader2, PanelRight, X } from 'lucide-react';
+import type { ChatMode } from '@/components/ChatPanel';
 
 export interface BottomToolbarProps {
-  /** Callback when test button is clicked */
   onTest?: () => void;
-  /** Callback when hide chat button is clicked */
-  onHideChat?: () => void;
-  /** Callback when add node button is clicked */
   onAddNode?: () => void;
-  /** Callback when delete button is clicked */
   onDelete?: () => void;
-  /** Callback when grid toggle is clicked */
   onToggleGrid?: () => void;
-  /** Whether delete action is available */
   canDelete?: boolean;
-  /** Whether workflow is executing (Phase 4) */
   isExecuting?: boolean;
-  /** Execution progress 0-100 (Phase 4) */
   executionProgress?: number;
+  chatMode?: ChatMode;
+  onChatModeChange?: (mode: ChatMode) => void;
 }
 
 export const BottomToolbar: React.FC<BottomToolbarProps> = ({
   onTest,
-  onHideChat,
   onAddNode,
   onDelete,
   onToggleGrid,
   canDelete = false,
   isExecuting = false,
   executionProgress = 0,
+  chatMode = 'closed',
+  onChatModeChange,
 }) => {
+  const handleChatClick = () => {
+    if (!onChatModeChange) return;
+    const next: Record<ChatMode, ChatMode> = {
+      closed: 'popup',
+      popup: 'docked',
+      docked: 'closed',
+    };
+    onChatModeChange(next[chatMode]);
+  };
+
+  const chatLabel = chatMode === 'closed' ? 'Chat' : chatMode === 'popup' ? 'Dock Chat' : 'Close Chat';
+  const ChatIcon = chatMode === 'closed' ? MessageSquare : chatMode === 'popup' ? PanelRight : X;
   return (
     <div
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
@@ -101,13 +108,18 @@ export const BottomToolbar: React.FC<BottomToolbarProps> = ({
             )}
           </button>
 
-          {/* Hide Chat Button */}
-          <button
-            onClick={onHideChat}
-            className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all flex items-center gap-2"
+          {/* Chat Mode Button */}
+          <button 
+            onClick={handleChatClick}
+            className={cn(
+              "px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2",
+              chatMode !== 'closed'
+                ? "text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/10"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            )}
           >
-            <MessageSquare className="w-4 h-4" />
-            Hide chat
+            <ChatIcon className="w-4 h-4" />
+            {chatLabel}
           </button>
 
           <div className="w-px h-6 bg-white/10 mx-1" />
