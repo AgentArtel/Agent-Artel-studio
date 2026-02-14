@@ -20,7 +20,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { data: workflows = [], isLoading: loadingWorkflows } = useQuery({
     queryKey: ['studio-workflows'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).schema('studio').from('workflows').select('*').order('updated_at', { ascending: false }).limit(4);
+      const { data, error } = await supabase.from('studio_workflows').select('*').order('updated_at', { ascending: false }).limit(4);
       if (error) throw error;
       return data as any[];
     },
@@ -30,7 +30,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { data: allWorkflows = [] } = useQuery({
     queryKey: ['studio-all-workflows'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).schema('studio').from('workflows').select('id, status');
+      const { data, error } = await supabase.from('studio_workflows').select('id, status');
       if (error) throw error;
       return data as any[];
     },
@@ -40,7 +40,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { data: activities = [], isLoading: loadingActivities } = useQuery({
     queryKey: ['studio-activity-log'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).schema('studio').from('activity_log').select('*').order('created_at', { ascending: false }).limit(10);
+      const { data, error } = await supabase.from('studio_activity_log').select('*').order('created_at', { ascending: false }).limit(10);
       if (error) throw error;
       return data as any[];
     },
@@ -50,7 +50,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { data: executions = [], isLoading: loadingExecs } = useQuery({
     queryKey: ['studio-executions'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).schema('studio').from('executions').select('*').order('started_at', { ascending: true });
+      const { data, error } = await supabase.from('studio_executions').select('*').order('started_at', { ascending: true });
       if (error) throw error;
       return data as any[];
     },

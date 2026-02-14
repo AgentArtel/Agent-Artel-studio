@@ -164,6 +164,128 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_activity_log: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          type: string
+          user_id: string
+          workflow_id: string | null
+          workflow_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          type: string
+          user_id?: string
+          workflow_id?: string | null
+          workflow_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          type?: string
+          user_id?: string
+          workflow_id?: string | null
+          workflow_name?: string | null
+        }
+        Relationships: []
+      }
+      studio_executions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          node_results: Json
+          started_at: string
+          status: string
+          user_id: string
+          workflow_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          node_results?: Json
+          started_at?: string
+          status?: string
+          user_id?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          node_results?: Json
+          started_at?: string
+          status?: string
+          user_id?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "studio_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_workflows: {
+        Row: {
+          connections_data: Json
+          created_at: string
+          description: string | null
+          execution_count: number
+          id: string
+          last_run_at: string | null
+          name: string
+          node_count: number
+          nodes_data: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connections_data?: Json
+          created_at?: string
+          description?: string | null
+          execution_count?: number
+          id?: string
+          last_run_at?: string | null
+          name: string
+          node_count?: number
+          nodes_data?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          connections_data?: Json
+          created_at?: string
+          description?: string | null
+          execution_count?: number
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          node_count?: number
+          nodes_data?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
