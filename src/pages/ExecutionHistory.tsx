@@ -22,9 +22,8 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ onNavigate }
   const { data: dbExecutions = [], isLoading } = useQuery({
     queryKey: ['studio-executions'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .schema('studio')
-        .from('executions')
+      const { data, error } = await supabase
+        .from('studio_executions')
         .select('*')
         .order('started_at', { ascending: false });
       if (error) throw error;
@@ -35,9 +34,8 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ onNavigate }
   const { data: dbWorkflowNames = [] } = useQuery({
     queryKey: ['studio-workflow-names'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .schema('studio')
-        .from('workflows')
+      const { data, error } = await supabase
+        .from('studio_workflows')
         .select('id, name');
       if (error) throw error;
       return data as any[];

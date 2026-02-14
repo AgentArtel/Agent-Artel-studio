@@ -23,9 +23,8 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({ onNavigate }) => {
   const { data: dbWorkflows = [], isLoading } = useQuery({
     queryKey: ['studio-all-workflows'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .schema('studio')
-        .from('workflows')
+      const { data, error } = await supabase
+        .from('studio_workflows')
         .select('*')
         .order('updated_at', { ascending: false });
       if (error) throw error;
