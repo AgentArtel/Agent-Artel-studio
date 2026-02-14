@@ -194,6 +194,41 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_agent_memory: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          workflow_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+          workflow_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_agent_memory_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "studio_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_executions: {
         Row: {
           completed_at: string | null

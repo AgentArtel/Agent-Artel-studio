@@ -35,7 +35,7 @@ export const TOOL_PORT: PortDefinition = {
   type: 'tool',
   label: 'Tools',
   position: 'right',
-  compatibleWith: ['input'],
+  compatibleWith: ['output'],
   maxConnections: Infinity,
   color: '#C586C0',
 };
@@ -45,7 +45,7 @@ export const MEMORY_PORT: PortDefinition = {
   type: 'memory',
   label: 'Memory',
   position: 'left',
-  compatibleWith: ['input'],
+  compatibleWith: ['output'],
   maxConnections: 1,
   color: '#6CB6FF',
 };
@@ -64,11 +64,11 @@ export function getPortsForNodeType(nodeType: NodeType): PortDefinition[] {
     case 'anthropic-chat':
       return [INPUT_PORT];
     case 'memory':
-      return [INPUT_PORT];
+      return [OUTPUT_PORT];
     case 'http-tool':
     case 'code-tool':
     case 'custom-tool':
-      return [INPUT_PORT];
+      return [OUTPUT_PORT];
     case 'if':
       return [INPUT_PORT, OUTPUT_PORT];
     case 'merge':

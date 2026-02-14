@@ -856,6 +856,8 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
               isSelected={isNodeSelected(node.id)}
               isRunning={isExecuting && getNodeStatus(node.id) === 'running'}
               executionStatus={getNodeStatus(node.id)}
+              connectedToolCount={node.type === 'ai-agent' ? connections.filter(c => c.to === node.id && c.toPort === 'tool').length : 0}
+              hasMemory={node.type === 'ai-agent' ? connections.some(c => c.to === node.id && c.toPort === 'memory') : false}
               onClick={handleNodeClick(node.id)}
               onDragStart={(e, nodeId) => startNodeDrag(e, nodeId, node.position)}
               onPortMouseDown={handlePortMouseDown}

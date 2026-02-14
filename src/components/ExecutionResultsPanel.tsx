@@ -64,9 +64,31 @@ export const ExecutionResultsPanel: React.FC<ExecutionResultsPanelProps> = ({
           <div className="p-3 bg-dark-200 rounded-lg">
             <p className="text-sm text-white/80 whitespace-pre-wrap">{result.text}</p>
           </div>
+          {/* Tool call logs */}
+          {result.toolCalls && result.toolCalls.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">Tool Calls ({result.iterations} iterations)</p>
+              {result.toolCalls.map((tc: any, i: number) => (
+                <div key={i} className="p-2 bg-purple-400/5 border border-purple-400/10 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-400/10 text-purple-400">{tc.tool}</span>
+                    <span className="text-[10px] text-white/30">iteration {tc.iteration}</span>
+                  </div>
+                  <pre className="text-[10px] text-white/50 overflow-auto max-h-20">{JSON.stringify(tc.result, null, 2)}</pre>
+                </div>
+              ))}
+            </div>
+          )}
+          {result.iterations && result.iterations > 1 && !result.toolCalls && (
+            <span className="text-[10px] text-white/30">{result.iterations} iterations</span>
+          )}
+          {result.memorySessionId && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400/60">Memory: {result.memorySessionId}</span>
+          )}
           {result.model && (
             <div className="flex items-center gap-2 text-[10px] text-white/40">
               <span className="px-1.5 py-0.5 rounded bg-white/5">{result.model}</span>
+              {result.toolCount > 0 && <span>{result.toolCount} tools</span>}
               {result.usage && <span>Tokens: {JSON.stringify(result.usage)}</span>}
             </div>
           )}
