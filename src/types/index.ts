@@ -109,3 +109,73 @@ export interface Viewport {
   width: number;
   height: number;
 }
+
+// =============================================================================
+// n8n IMPORT TYPES
+// =============================================================================
+// These types represent the raw n8n workflow JSON format.
+// Used by src/lib/n8nImporter.ts to convert n8n workflows to Artel format.
+// Reference: https://docs.n8n.io/workflows/export-import/
+
+/**
+ * Raw n8n node as it appears in exported workflow JSON.
+ * The `type` field uses n8n's namespaced format, e.g.:
+ *   - @n8n/n8n-nodes-langchain.chatTrigger
+ *   - @n8n/n8n-nodes-base.httpRequest
+ */
+export interface N8nNode {
+  id: string;
+  name: string;
+  type: string;
+  typeVersion: number;
+  position: [number, number];
+  parameters: Record<string, unknown>;
+  credentials?: Record<string, { id?: string; name: string }>;
+}
+
+/**
+ * Target reference in n8n's connections structure.
+ * Each connection target specifies the destination node (by name),
+ * the connection type (usually "main"), and the input index.
+ */
+export interface N8nConnectionTarget {
+  node: string;
+  type: string;
+  index: number;
+}
+
+/**
+ * Top-level n8n workflow JSON structure.
+ * `connections` is keyed by source node name (or sometimes ID in newer exports),
+ * then by output type (e.g., "main", "ai_languageModel"), then an array of arrays
+ * of connection targets (outer array = output index, inner array = targets for that output).
+ */
+export interface N8nWorkflowJSON {
+  name?: string;
+  nodes: N8nNode[];
+  connections: Record<string, Record<string, N8nConnectionTarget[][]>>;
+  settings?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+}
+
+/**
+ * Result of converting an n8n workflow to Artel format.
+ * Contains the converted nodes/connections plus any detected missing configuration
+ * (credentials and environment variables that need user input).
+ */
+export interface N8nImportResult {
+  nodes: NodeData[];
+  connections: Connection[];
+  workflowName: string;
+  missing: {
+    /** Credential references found in n8n nodes that need to be mapped to Artel credentials */
+    credentialRefs: {
+      nodeId: string;
+      nodeTitle: string;
+      credentialType: string;
+      n8nCredName: string;
+    }[];
+    /** Environment variable names detected in node parameters (from {{ $env.VAR }} expressions) */
+    envVars: string[];
+  };
+}
