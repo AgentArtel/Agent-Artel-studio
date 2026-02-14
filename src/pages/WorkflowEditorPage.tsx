@@ -28,6 +28,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ImportN8nModal } from '@/components/ImportN8nModal';
 import { ExecutionResultsPanel } from '@/components/ExecutionResultsPanel';
+import { ChatPanel, type ChatMode } from '@/components/ChatPanel';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import type { N8nImportResult } from '@/types';
 import { Canvas, getCanvasTransform } from '@/components/canvas/Canvas';
 import { CanvasNode } from '@/components/canvas/CanvasNode';
@@ -233,6 +235,7 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
 
   const [isNodePaletteOpen, setIsNodePaletteOpen] = useState(false);
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
+  const [chatMode, setChatMode] = useState<ChatMode>('closed');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [workflowName, setWorkflowName] = useState('AI Agent Workflow');
@@ -799,12 +802,98 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
   })();
 
   // ===========================================================================
+  // RENDER HELPERS
+  // ===========================================================================
+
+  const renderCanvasContent = () => (
+    <Canvas
+      nodes={nodes}
+      connections={connections}
+      selectedNodeId={selectedNodeIds.size === 1 ? Array.from(selectedNodeIds)[0] : null}
+      onNodeSelect={(id) => {
+        if (id) handleSelectionNodeClick(id);
+        else clearSelection();
+      }}
+      onNodeMove={() => {}}
+      onConnectionStart={() => {}}
+      onConnectionEnd={() => {}}
+      tempConnection={tempLine}
+      onMouseMove={handleCanvasMouseMove}
+      onMouseUp={handleCanvasMouseUp}
+      onMouseDown={handleCanvasMouseDown}
+    >
+      {selectionBox.isActive && (
+        <SelectionBox
+          startX={selectionBox.startX}
+          startY={selectionBox.startY}
+          currentX={selectionBox.currentX}
+          currentY={selectionBox.currentY}
+        />
+      )}
+      {connections.map((connection) => {
+        const { fromPos, toPos } = getConnectionPositions(connection);
+        return (
+          <g key={connection.id} onContextMenu={(e) => handleContextMenu(e as unknown as React.MouseEvent, 'connection', connection.id)}>
+            <ConnectionLine
+              connection={connection}
+              fromPos={fromPos}
+              toPos={toPos}
+              isSelected={isConnectionSelected(connection.id)}
+              isAnimating={isExecuting}
+              label={connection.label}
+              onClick={() => handleConnectionClick(connection.id)}
+            />
+          </g>
+        );
+      })}
+      {nodes.map((node) => {
+        const effectivePosition = getNodePosition(node);
+        const nodeWithPosition = { ...node, position: effectivePosition };
+        return (
+          <div key={node.id} data-node-id={node.id} onContextMenu={(e) => handleContextMenu(e, 'node', node.id)} {...touchHandlers}>
+            <CanvasNode
+              data={nodeWithPosition}
+              isSelected={isNodeSelected(node.id)}
+              isRunning={isExecuting && getNodeStatus(node.id) === 'running'}
+              executionStatus={getNodeStatus(node.id)}
+              onClick={handleNodeClick(node.id)}
+              onDragStart={(e, nodeId) => startNodeDrag(e, nodeId, node.position)}
+              onPortMouseDown={handlePortMouseDown}
+              onPortMouseUp={handlePortMouseUp}
+            />
+          </div>
+        );
+      })}
+    </Canvas>
+  );
+
+  const renderOverlays = () => (
+    <>
+      {isConfigPanelOpen && selectedNode && (
+        <ConfigPanel
+          isOpen={isConfigPanelOpen}
+          onClose={() => { setIsConfigPanelOpen(false); clearSelection(); }}
+          nodeData={selectedNode}
+          onUpdate={handleNodeUpdate}
+        />
+      )}
+      <ExecutionResultsPanel
+        isOpen={showResults && (executionState === 'completed' || executionState === 'error')}
+        onClose={() => setShowResults(false)}
+        nodes={nodes}
+        nodeResults={nodeResults}
+        executionState={executionState}
+        duration={lastDuration}
+      />
+    </>
+  );
+
+  // ===========================================================================
   // RENDER
   // ===========================================================================
 
   return (
     <div className="h-screen flex flex-col bg-dark">
-      {/* Header */}
       <Header
         workflowName={workflowName}
         isActive={true}
@@ -817,129 +906,56 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
         onRedo={redo}
       />
 
-      {/* Main content area */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Canvas */}
-        <div ref={canvasRef} className="w-full h-full">
-          <Canvas
-            nodes={nodes}
-            connections={connections}
-            selectedNodeId={selectedNodeIds.size === 1 ? Array.from(selectedNodeIds)[0] : null}
-            onNodeSelect={(id) => {
-              if (id) {
-                handleSelectionNodeClick(id);
-              } else {
-                clearSelection();
-              }
-            }}
-            onNodeMove={() => {}}
-            onConnectionStart={() => {}}
-            onConnectionEnd={() => {}}
-            tempConnection={tempLine}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
-            onMouseDown={handleCanvasMouseDown}
-          >
-            {/* Selection Box */}
-            {selectionBox.isActive && (
-              <SelectionBox
-                startX={selectionBox.startX}
-                startY={selectionBox.startY}
-                currentX={selectionBox.currentX}
-                currentY={selectionBox.currentY}
+        {chatMode === 'docked' ? (
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel defaultSize={65} minSize={40}>
+              <div ref={canvasRef} className="w-full h-full relative">
+                {renderCanvasContent()}
+                {renderOverlays()}
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={35} minSize={25}>
+              <ChatPanel
+                mode="docked"
+                onModeChange={setChatMode}
+                agentNode={nodes.find(n => n.type === 'ai-agent') || null}
               />
-            )}
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div ref={canvasRef} className="w-full h-full relative">
+            {renderCanvasContent()}
+            {renderOverlays()}
+          </div>
+        )}
 
-            {/* Render connections */}
-            {connections.map((connection) => {
-              const { fromPos, toPos } = getConnectionPositions(connection);
-              return (
-                <g
-                  key={connection.id}
-                  onContextMenu={(e) => handleContextMenu(e as unknown as React.MouseEvent, 'connection', connection.id)}
-                >
-                  <ConnectionLine
-                    connection={connection}
-                    fromPos={fromPos}
-                    toPos={toPos}
-                    isSelected={isConnectionSelected(connection.id)}
-                    isAnimating={isExecuting}
-                    label={connection.label}
-                    onClick={() => handleConnectionClick(connection.id)}
-                  />
-                </g>
-              );
-            })}
-
-            {/* Render nodes */}
-            {nodes.map((node) => {
-              const effectivePosition = getNodePosition(node);
-              const nodeWithPosition = { ...node, position: effectivePosition };
-              return (
-                <div
-                  key={node.id}
-                  data-node-id={node.id}
-                  onContextMenu={(e) => handleContextMenu(e, 'node', node.id)}
-                  {...touchHandlers}
-                >
-                  <CanvasNode
-                    data={nodeWithPosition}
-                    isSelected={isNodeSelected(node.id)}
-                    isRunning={isExecuting && getNodeStatus(node.id) === 'running'}
-                    executionStatus={getNodeStatus(node.id)}
-                    onClick={handleNodeClick(node.id)}
-                    onDragStart={(e, nodeId) => startNodeDrag(e, nodeId, node.position)}
-                    onPortMouseDown={handlePortMouseDown}
-                    onPortMouseUp={handlePortMouseUp}
-                  />
-                </div>
-              );
-            })}
-          </Canvas>
-        </div>
-
-        {/* Config Panel */}
-        {isConfigPanelOpen && selectedNode && (
-          <ConfigPanel
-            isOpen={isConfigPanelOpen}
-            onClose={() => {
-              setIsConfigPanelOpen(false);
-              clearSelection();
-            }}
-            nodeData={selectedNode}
-            onUpdate={handleNodeUpdate}
+        {chatMode === 'popup' && (
+          <ChatPanel
+            mode="popup"
+            onModeChange={setChatMode}
+            agentNode={nodes.find(n => n.type === 'ai-agent') || null}
           />
         )}
 
-        {/* Execution Results Panel */}
-        <ExecutionResultsPanel
-          isOpen={showResults && (executionState === 'completed' || executionState === 'error')}
-          onClose={() => setShowResults(false)}
-          nodes={nodes}
-          nodeResults={nodeResults}
-          executionState={executionState}
-          duration={lastDuration}
-        />
-
-        {/* Bottom Toolbar */}
         <BottomToolbar
           onTest={handleRunWorkflow}
-          onHideChat={() => setIsChatOpen(!isChatOpen)}
           onAddNode={() => setIsNodePaletteOpen(true)}
           onDelete={handleDeleteNode}
           canDelete={selectedNodeIds.size > 0}
           isExecuting={isExecuting}
           executionProgress={progress}
+          chatMode={chatMode}
+          onChatModeChange={setChatMode}
         />
 
-        {/* Node Search Palette */}
         <NodeSearchPalette
           isOpen={isNodePaletteOpen}
           onClose={() => setIsNodePaletteOpen(false)}
           onSelectNode={handleAddNode}
         />
 
-        {/* Context Menu */}
         {menuState.isOpen && (
           <ContextMenu
             position={menuPosition}
@@ -952,7 +968,6 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
           />
         )}
 
-        {/* n8n Import Modal */}
         <ImportN8nModal
           isOpen={isImportModalOpen}
           onClose={() => setIsImportModalOpen(false)}
@@ -960,16 +975,10 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
           availableCredentials={availableCredentials}
         />
 
-        {/* Toast Container */}
-        <ToastContainer
-          toasts={toasts}
-          onDismiss={dismissToast}
-          position="bottom-right"
-        />
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} position="bottom-right" />
 
-        {/* Touch Device Indicator */}
         {isTouchDevice && (
-          <div className="fixed top-20 right-4 z-40 px-3 py-1.5 bg-green/20 text-green text-xs rounded-full">
+          <div className="fixed top-20 right-4 z-40 px-3 py-1.5 bg-[hsl(var(--primary))]/20 text-[hsl(var(--primary))] text-xs rounded-full">
             Touch Mode
           </div>
         )}
