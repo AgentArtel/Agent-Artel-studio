@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Image, MessageSquare, Binary, Eye, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { X, Image, MessageSquare, Binary, Eye, CheckCircle, AlertCircle, Clock, Bot } from 'lucide-react';
 import type { NodeData } from '@/types';
 import type { ExecutionState } from '@/hooks/useExecution';
 
@@ -32,6 +32,7 @@ export const ExecutionResultsPanel: React.FC<ExecutionResultsPanelProps> = ({
       case 'gemini-chat': return <MessageSquare className="w-4 h-4 text-blue-400" />;
       case 'gemini-embed': return <Binary className="w-4 h-4 text-purple-400" />;
       case 'gemini-vision': return <Eye className="w-4 h-4 text-cyan-400" />;
+      case 'ai-agent': return <Bot className="w-4 h-4 text-green" />;
       default: return <CheckCircle className="w-4 h-4 text-green" />;
     }
   };
@@ -59,8 +60,16 @@ export const ExecutionResultsPanel: React.FC<ExecutionResultsPanelProps> = ({
 
     if (result.text) {
       return (
-        <div className="p-3 bg-dark-200 rounded-lg">
-          <p className="text-sm text-white/80 whitespace-pre-wrap">{result.text}</p>
+        <div className="space-y-2">
+          <div className="p-3 bg-dark-200 rounded-lg">
+            <p className="text-sm text-white/80 whitespace-pre-wrap">{result.text}</p>
+          </div>
+          {result.model && (
+            <div className="flex items-center gap-2 text-[10px] text-white/40">
+              <span className="px-1.5 py-0.5 rounded bg-white/5">{result.model}</span>
+              {result.usage && <span>Tokens: {JSON.stringify(result.usage)}</span>}
+            </div>
+          )}
         </div>
       );
     }

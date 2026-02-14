@@ -140,6 +140,22 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
         )}
       </div>
 
+      {/* Agent config summary */}
+      {data.type === 'ai-agent' && data.config && (
+        <div className="px-4 pb-1 flex flex-wrap gap-1">
+          {(data.config as any).model && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green/10 text-green/80">
+              {(data.config as any).model === 'gemini-2.5-flash' ? 'Flash' : 'Pro'}
+            </span>
+          )}
+          {(data.config as any).agentType && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-400/10 text-purple-400/80">
+              {(data.config as any).agentType === 'tools-agent' ? 'Tools' : 'Chat'}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Deactivated label */}
       {data.isDeactivated && (
         <div className="px-4 pb-2">
