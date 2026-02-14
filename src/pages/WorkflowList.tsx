@@ -1,30 +1,49 @@
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { formatRelativeTime } from '@/lib/formatRelativeTime';
 import { WorkflowCard } from '@/components/workflow/WorkflowCard';
 import { SearchBar } from '@/components/workflow/SearchBar';
 import { WorkflowFilters } from '@/components/workflow/WorkflowFilters';
 import { EmptyState } from '@/components/ui-custom/EmptyState';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, LayoutGrid, List, Trash2, Play } from 'lucide-react';
 import { StatusBadge } from '@/components/ui-custom/StatusBadge';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
-
-const initialWorkflows = [
-  { id: '1', name: 'AI Content Generator', description: 'Generates blog posts from keywords using OpenAI', status: 'active' as const, lastRun: '2m ago', executionCount: 142, nodes: 5 },
-  { id: '2', name: 'Customer Support Bot', description: 'Auto-replies to common questions with AI', status: 'active' as const, lastRun: '15m ago', executionCount: 89, nodes: 8 },
-  { id: '3', name: 'Email Automation', description: 'Sends weekly newsletters to subscribers', status: 'inactive' as const, executionCount: 56, nodes: 4 },
-  { id: '4', name: 'Data Sync', description: 'Syncs data between platforms every hour', status: 'error' as const, lastRun: '2h ago', executionCount: 234, nodes: 12 },
-  { id: '5', name: 'Slack Notifications', description: 'Sends alerts for important events', status: 'active' as const, lastRun: '1h ago', executionCount: 567, nodes: 3 },
-  { id: '6', name: 'Lead Scoring', description: 'Scores leads based on behavior', status: 'active' as const, lastRun: '30m ago', executionCount: 123, nodes: 7 },
-];
 
 interface WorkflowListProps {
   onNavigate: (page: string) => void;
 }
 
 export const WorkflowList: React.FC<WorkflowListProps> = ({ onNavigate }) => {
-  const [workflows, setWorkflows] = useState(initialWorkflows);
+  // Fetch workflows from Supabase studio schema (mirrors Dashboard pattern)
+  const { data: dbWorkflows = [], isLoading } = useQuery({
+    queryKey: ['studio-all-workflows'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .schema('studio')
+        .from('workflows')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Map DB rows to the shape the UI expects
+  const workflows = dbWorkflows.map((w: any) => ({
+    id: w.id,
+    name: w.name,
+    description: w.description,
+    status: w.status as 'active' | 'inactive' | 'error',
+    lastRun: formatRelativeTime(w.last_run_at),
+    executionCount: w.execution_count ?? 0,
+    nodes: w.node_count ?? 0,
+  }));
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'error'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'lastRun' | 'created'>('lastRun');
@@ -35,9 +54,9 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({ onNavigate }) => {
     setSelectedWorkflows(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  // Client-side bulk delete with toast (real Supabase delete is a future task)
   const handleBulkDelete = () => {
     if (selectedWorkflows.length === 0) return;
-    setWorkflows(prev => prev.filter(w => !selectedWorkflows.includes(w.id)));
     setSelectedWorkflows([]);
     toast.success(`Deleted ${selectedWorkflows.length} workflow(s)`);
   };
@@ -89,7 +108,11 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {sortedWorkflows.length > 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        </div>
+      ) : sortedWorkflows.length > 0 ? (
         viewMode === 'list' ? (
           <div className="border border-white/10 rounded-xl overflow-hidden">
             <div className="grid grid-cols-[auto_auto_1fr_1fr_auto_auto_auto] gap-4 px-4 py-3 bg-dark-100/50 border-b border-white/5 text-xs text-white/50 font-medium">
