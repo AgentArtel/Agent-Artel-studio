@@ -1,56 +1,83 @@
 
 
-# Fix Plan: Make It Actually Look Like an N8N Clone
+# Full App Assembly: Dashboard, Pages, Routing, Navigation
 
-## What's Wrong
+## Overview
+Copy all remaining reference app pages, components, and routing into the active project. The app currently only shows the workflow editor canvas -- after this, it becomes a full multi-page application with sidebar navigation, dashboard, workflow list, execution history, credentials manager, agent library, settings, and component showcase.
 
-The migration copied all the files correctly, but the rendering is generic and flat because of 4 specific wiring/styling issues:
+**Rule: All mock/placeholder data text rendered in the UI will be italicized** to clearly distinguish it from real application chrome.
 
-1. **All nodes look the same** -- WorkflowEditorPage renders every node as a generic CanvasNode. The OpenAI Chat node should use the green gradient card, but the specialized node components in `src/components/nodes/` are never referenced.
+## What Gets Created
 
-2. **No borders visible on nodes** -- CanvasNode applies border-color classes (`border-green`, `border-white/10`) without ever adding `border` (the width class). Result: no visible borders or glow effects.
+### New Component Directories and Files (22 new files)
 
-3. **Node appear animation broken** -- Inline style says `animation: 'node-appear ...'` but the CSS keyframe is `nodeAppear`. The animation never fires, so nodes just pop in with no entrance effect.
+**`src/components/dashboard/` (4 files)**
+- `StatCard.tsx` -- Stat cards with trend indicators and icons
+- `ActivityFeed.tsx` -- Activity timeline with typed icons
+- `ExecutionChart.tsx` -- SVG sparkline chart with gradient fill
+- `WorkflowPreview.tsx` -- Compact workflow cards for the dashboard grid
 
-4. **Connection lines look dead** -- All connections render as flat gray `#3A3A3A` lines. No glow, no gradient. The selected state works but there's no visual indication that connections are clickable.
+**`src/components/workflow/` (3 files)**
+- `SearchBar.tsx` -- Search input with clear button
+- `WorkflowCard.tsx` -- Full workflow card with status badge, node count, execution stats
+- `WorkflowFilters.tsx` -- Status filter tabs and sort dropdown
 
-## Fixes
+**`src/components/execution/` (1 file)**
+- `ExecutionRow.tsx` -- Execution history row with status badge, duration, retry button
 
-### Fix 1: Add `border` width class to CanvasNode
-**File:** `src/components/canvas/CanvasNode.tsx`
-- Add `border` to the className string so border-color classes actually render
-- Change: `'absolute w-[200px] rounded-xl bg-dark-100/95...'` becomes `'absolute w-[200px] rounded-xl border bg-dark-100/95...'`
+**`src/components/credentials/` (3 files)**
+- `CredentialCard.tsx` -- Credential card with connection status indicator
+- `CredentialModal.tsx` -- Add/edit credential modal with test connection
+- `index.ts` -- Barrel export
 
-### Fix 2: Fix node-appear animation name
-**File:** `src/components/canvas/CanvasNode.tsx`
-- Change inline style from `animation: 'node-appear 0.4s...'` to `animation: 'nodeAppear 0.4s...'`
-- OR use the Tailwind class `animate-node-appear` instead of inline style
+**`src/components/templates/` (1 file)**
+- `TemplateCard.tsx` -- Template card with difficulty badge, category chip, preview area
 
-### Fix 3: Apply green gradient to OpenAI/Anthropic nodes
-**File:** `src/components/canvas/CanvasNode.tsx`
-- Add conditional styling: when `data.type === 'openai-chat'` or `data.type === 'anthropic-chat'`, apply the green gradient background and white text instead of the default dark card
-- Use the existing CSS utility classes: `bg-gradient-green` for the background, `border-[rgba(121,241,129,0.4)]` for the border
-- Add the glass overlay via a pseudo-element or inner div
-- This keeps everything in one component (no need to swap in `OpenAIChatNode` which is a config-panel component, not a canvas node)
+**`src/components/onboarding/` (3 files)**
+- `OnboardingModal.tsx` -- Multi-step welcome wizard
+- `OnboardingStep.tsx` -- Individual step with number/check indicator
+- `index.ts` -- Barrel export
 
-### Fix 4: Give connection lines more life
-**File:** `src/components/canvas/ConnectionLine.tsx`
-- Default state: change stroke from flat `#3A3A3A` to a slightly lighter `#4A4A4A` with subtle opacity
-- Add a thin glow to ALL connections (not just selected ones) using a low-opacity version of the filter
-- Make the hover/click target wider (increase background path stroke width) for better interactivity
+**`src/components/forms/` (5 files)**
+- `FormInput.tsx` -- Text/password input with visibility toggle
+- `FormSelect.tsx` -- Custom dropdown select with search
+- `FormTextarea.tsx` -- Multi-line text input
+- `FormToggle.tsx` -- Toggle switch with label
+- `index.ts` -- Barrel export
 
-### Fix 5: Improve node card padding and sizing
-**File:** `src/components/canvas/CanvasNode.tsx`
-- Add bottom padding so the node content doesn't crowd the bottom port
-- Increase from `w-[200px]` to `w-[220px]` to match n8n's slightly wider cards
-- Add `pb-4` to the main container for breathing room below content
+### New Pages (6 files)
+- `src/pages/Dashboard.tsx` -- Stats grid, recent workflows, execution chart, activity feed
+- `src/pages/WorkflowList.tsx` -- Searchable/filterable workflow grid with view toggle
+- `src/pages/ExecutionHistory.tsx` -- Filterable execution log with status counts
+- `src/pages/Credentials.tsx` -- Credentials manager with add modal
+- `src/pages/AgentLibrary.tsx` -- Template browser with category filters
+- `src/pages/Settings.tsx` -- Profile, notifications, preferences, security sections
+- `src/pages/ShowcasePage.tsx` -- Full component gallery with tabbed sections
+
+### Modified Files (2 files)
+- `src/lib/utils.ts` -- Add `formatDate`, `formatTime`, `formatDuration`, `truncate`, `generateId` functions
+- `src/App.tsx` -- Replace router with state-based navigation, add Sidebar layout, wire up all 8 pages (dashboard as default)
+
+## Mock Data Italicization Rule
+
+All mock/placeholder data strings (names, descriptions, timestamps, stat values) rendered in the UI will be wrapped in `<em>` or `<i>` tags, or use the `italic` Tailwind class. This applies to:
+- Dashboard stat values and subtitles (e.g., "12", "3 added this month")
+- Workflow names and descriptions in lists
+- Execution history entries (workflow names, timestamps, durations)
+- Credential names and service types
+- Template names and descriptions
+- Activity feed messages and timestamps
+- Settings profile data (e.g., "John Doe", "john@example.com")
+
+## Technical Details
+
+- All files are direct copies from `reference-app/src/` with one modification: mock data text gets `italic` class
+- All imports use `@/` path alias which resolves identically in both projects
+- The `Sidebar` component already exists in `src/components/ui-custom/Sidebar.tsx` with all nav items pre-configured
+- The `SidebarItem` component already exists and handles active state, collapsed mode, and click handlers
+- Settings page uses `ui-custom/FormInput` (has `defaultValue` via HTML attributes) and `ui-custom/FormToggle` (has `description` prop) -- both already migrated and compatible
+- `CredentialModal` depends on `forms/FormInput` and `forms/FormSelect` (new directory, not the ui-custom versions)
 
 ## Result
-After these 5 targeted fixes:
-- OpenAI/Anthropic nodes will have the signature green gradient card look
-- All nodes will have visible borders with glow effects on hover/select
-- Node entrance animation will actually play
-- Connection lines will have subtle glow making them feel alive
-- Cards will have proper spacing and sizing
 
-No new files, no rewrites -- just surgical fixes to 2 existing files.
+Opening the app lands on the **Dashboard** with sidebar navigation. Users can navigate between all 8 sections. Clicking "Workflow Editor" in the sidebar opens the full-screen canvas (no sidebar). All mock data appears in italics so it's clearly placeholder content.
