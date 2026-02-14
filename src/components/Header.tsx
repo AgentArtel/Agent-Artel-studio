@@ -40,7 +40,8 @@ import {
 import { Button } from '@/components/ui/button';
 
 export interface HeaderProps {
-  /** Callback when zoom in button is clicked */
+  /** Callback when back button is clicked */
+  onBack?: () => void;
   onZoomIn?: () => void;
   /** Callback when zoom out button is clicked */
   onZoomOut?: () => void;
@@ -65,6 +66,7 @@ export interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  onBack,
   onZoomIn,
   onZoomOut,
   onReset,
@@ -82,7 +84,10 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="h-full px-4 flex items-center justify-between">
         {/* Left - Back & Logo */}
         <div className="flex items-center gap-3">
-          <button className="w-9 h-9 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-all">
+          <button
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-all"
+            onClick={onBack}
+          >
             <ChevronLeft className="w-5 h-5" />
           </button>
 

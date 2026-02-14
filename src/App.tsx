@@ -32,7 +32,7 @@ const App = () => {
       case 'credentials': return <Credentials onNavigate={onNavigate} />;
       case 'templates': return <AgentLibrary onNavigate={onNavigate} />;
       case 'settings': return <Settings onNavigate={onNavigate} />;
-      case 'editor': return <WorkflowEditorPage />;
+      case 'editor': return <WorkflowEditorPage onNavigate={onNavigate} />;
       case 'showcase': return <ShowcasePage />;
       default: return <Dashboard onNavigate={onNavigate} />;
     }
@@ -46,12 +46,6 @@ const App = () => {
           <Toaster />
           <Sonner />
           <div className="min-h-screen bg-dark text-white font-urbanist">
-            <button
-              onClick={() => setCurrentPage('dashboard')}
-              className="fixed top-4 left-4 z-50 px-3 py-1.5 bg-dark-100 border border-white/10 rounded-lg text-xs text-white/60 hover:text-white hover:border-green/30 transition-all"
-            >
-              ← Back to Dashboard
-            </button>
             {renderPage()}
           </div>
         </TooltipProvider>
