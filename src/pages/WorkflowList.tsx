@@ -33,11 +33,11 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({ onNavigate }) => {
   });
 
   // Map DB rows to the shape the UI expects
-  const workflows = dbWorkflows.map((w: any) => ({
+  const workflows = (dbWorkflows ?? []).map((w: any) => ({
     id: w.id,
-    name: w.name,
-    description: w.description,
-    status: w.status as 'active' | 'inactive' | 'error',
+    name: w.name ?? '',
+    description: w.description ?? '',
+    status: (w.status ?? 'inactive') as 'active' | 'inactive' | 'error',
     lastRun: formatRelativeTime(w.last_run_at),
     executionCount: w.execution_count ?? 0,
     nodes: w.node_count ?? 0,
