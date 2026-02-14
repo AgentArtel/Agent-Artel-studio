@@ -122,7 +122,11 @@ const initialConnections: Connection[] = [
 // MAIN COMPONENT
 // =============================================================================
 
-export const WorkflowEditorPage: React.FC = () => {
+interface WorkflowEditorPageProps {
+  onNavigate?: (page: string) => void;
+}
+
+export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNavigate }) => {
   // ===========================================================================
   // REFS
   // ===========================================================================
@@ -767,6 +771,7 @@ export const WorkflowEditorPage: React.FC = () => {
       <Header
         workflowName="AI Agent Workflow"
         isActive={true}
+        onBack={() => onNavigate?.('dashboard')}
         onSave={handleSaveWorkflow}
         canUndo={canUndo}
         canRedo={canRedo}
