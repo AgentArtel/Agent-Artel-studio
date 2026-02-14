@@ -27,6 +27,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ImportN8nModal } from '@/components/ImportN8nModal';
+import { ExecutionResultsPanel } from '@/components/ExecutionResultsPanel';
 import type { N8nImportResult } from '@/types';
 import { Canvas, getCanvasTransform } from '@/components/canvas/Canvas';
 import { CanvasNode } from '@/components/canvas/CanvasNode';
@@ -80,44 +81,27 @@ const initialNodes: NodeData[] = [
   {
     id: 'trigger-1',
     type: 'trigger',
-    position: { x: 100, y: 150 },
-    title: 'Chat Trigger',
-    subtitle: 'When chat message received',
+    position: { x: 150, y: 200 },
+    title: 'Manual Trigger',
+    subtitle: 'Start workflow',
     isConfigured: true,
   },
   {
-    id: 'ai-agent-1',
-    type: 'ai-agent',
-    position: { x: 450, y: 150 },
-    title: 'AI Agent',
-    subtitle: 'Tools Agent',
-    isConfigured: true,
-  },
-  {
-    id: 'openai-1',
-    type: 'openai-chat',
-    position: { x: 300, y: 400 },
-    title: 'OpenAI Chat',
-    subtitle: 'gpt-4o-mini',
+    id: 'image-gen-1',
+    type: 'image-gen',
+    position: { x: 500, y: 200 },
+    title: 'Image Generator',
+    subtitle: 'Gemini Imagen',
     config: {
-      credential: 'Open AI account 4',
-      model: 'gpt-4o-mini',
+      prompt: 'A futuristic robot in a neon-lit city',
+      style: 'vivid',
     },
     isConfigured: true,
-  },
-  {
-    id: 'memory-1',
-    type: 'memory',
-    position: { x: 750, y: 150 },
-    title: 'Postgres Memory',
-    subtitle: 'Chat memory storage',
-    isDeactivated: true,
   },
 ];
 
 const initialConnections: Connection[] = [
-  { id: 'conn-1', from: 'trigger-1', to: 'ai-agent-1', fromPort: 'output', toPort: 'input' },
-  { id: 'conn-2', from: 'ai-agent-1', to: 'openai-1', fromPort: 'tool', toPort: 'input' },
+  { id: 'conn-1', from: 'trigger-1', to: 'image-gen-1', fromPort: 'output', toPort: 'input' },
 ];
 
 // =============================================================================
@@ -208,9 +192,14 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
   // EXECUTION
   // ===========================================================================
 
+  const [showResults, setShowResults] = useState(false);
+  const [lastDuration, setLastDuration] = useState<number | undefined>();
+
   const {
     progress,
     isExecuting,
+    executionState,
+    nodeResults,
     startExecution,
     stopExecution,
     getNodeStatus,
@@ -218,9 +207,12 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
     nodes,
     connections,
     onExecutionStart: () => {
+      setShowResults(false);
       showInfo('Workflow execution started');
     },
     onExecutionComplete: (result) => {
+      setLastDuration(result.duration);
+      setShowResults(true);
       if (result.status === 'completed') {
         showSuccess(`Workflow completed in ${(result.duration / 1000).toFixed(1)}s`);
       }
@@ -238,7 +230,7 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [workflowName, setWorkflowName] = useState('AI Agent Workflow');
+  const [workflowName, setWorkflowName] = useState('Image Generation Workflow');
 
   // Mock credentials for import modal (will be replaced with Supabase query)
   const availableCredentials = [
@@ -546,12 +538,26 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
 
   const handleAddNode = useCallback(
     (nodeType: NodeType) => {
+      const titleMap: Record<string, { title: string; subtitle: string }> = {
+        'trigger': { title: 'Manual Trigger', subtitle: 'Start workflow' },
+        'image-gen': { title: 'Image Generator', subtitle: 'Gemini Imagen' },
+        'gemini-chat': { title: 'Gemini Chat', subtitle: 'Text generation' },
+        'gemini-embed': { title: 'Gemini Embed', subtitle: 'Text embeddings' },
+        'gemini-vision': { title: 'Gemini Vision', subtitle: 'Image analysis' },
+        'ai-agent': { title: 'AI Agent', subtitle: 'Tools Agent' },
+        'openai-chat': { title: 'OpenAI Chat', subtitle: 'Chat completion' },
+        'http-tool': { title: 'HTTP Request', subtitle: 'API call' },
+        'code-tool': { title: 'Code', subtitle: 'JavaScript / Python' },
+        'webhook': { title: 'Webhook', subtitle: 'HTTP trigger' },
+        'memory': { title: 'Memory', subtitle: 'Chat memory' },
+      };
+      const meta = titleMap[nodeType] || { title: nodeType.charAt(0).toUpperCase() + nodeType.slice(1), subtitle: 'New node' };
       const newNode: NodeData = {
         id: `node-${Date.now()}`,
         type: nodeType,
         position: { x: 300, y: 200 },
-        title: nodeType.charAt(0).toUpperCase() + nodeType.slice(1),
-        subtitle: 'New node',
+        title: meta.title,
+        subtitle: meta.subtitle,
         isConfigured: false,
       };
       pushState(
@@ -899,6 +905,16 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
             onUpdate={handleNodeUpdate}
           />
         )}
+
+        {/* Execution Results Panel */}
+        <ExecutionResultsPanel
+          isOpen={showResults && (executionState === 'completed' || executionState === 'error')}
+          onClose={() => setShowResults(false)}
+          nodes={nodes}
+          nodeResults={nodeResults}
+          executionState={executionState}
+          duration={lastDuration}
+        />
 
         {/* Bottom Toolbar */}
         <BottomToolbar
