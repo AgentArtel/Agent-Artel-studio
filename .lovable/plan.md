@@ -1,57 +1,165 @@
 
-# Deploy `generate-image` Edge Function
+
+# Wire generate-image into Studio UI + Add GenAI Edge Functions
 
 ## Overview
 
-Create and deploy the Supabase Edge Function `generate-image` on the shared project, and set the `GEMINI_API_KEY` secret. No schema changes needed.
+Two parts: (1) integrate the existing `generate-image` edge function as a callable node type in Agent Artel Studio, and (2) add additional Gemini-powered edge functions for the most common GenAI capabilities agents would need.
 
-## Steps
+---
 
-### Step 1: Set the GEMINI_API_KEY secret
+## Part 1: Wire generate-image into the Studio UI
 
-Before writing any code, we need the Gemini API key stored as a Supabase secret. You'll be prompted to paste your key (from Google AI Studio or Cloud Console). This key will only be accessible inside Edge Functions -- neither the game server nor Agent Artel Studio will see it directly.
+### 1.1 Add `image-gen` node type
 
-### Step 2: Create the Edge Function
+**File: `src/types/index.ts`**
 
-**File: `supabase/functions/generate-image/index.ts`** (Create)
+Add `'image-gen'` to the `NodeType` union.
 
-The full implementation as provided in the request:
-- CORS headers allowing `*` origin for MVP, supporting `POST` and `OPTIONS`
-- Validates request body (`prompt` required, `style` optional defaulting to `"vivid"`, `agentId` optional)
-- Reads `GEMINI_API_KEY` from Deno env (Edge Function secrets)
-- Calls `ai.models.generateImages()` with model `imagen-4.0-generate-001`
-- Returns `{ success: true, imageDataUrl: "data:image/png;base64,..." }` on success
-- Returns typed error codes: `api_unavailable`, `invalid_prompt`, `no_result`, `content_policy`, `api_error`, `method_not_allowed`
+### 1.2 Add node config schema
 
-### Step 3: Update `supabase/config.toml`
+**File: `src/lib/nodeConfig.ts`**
 
-**File: `supabase/config.toml`** (Modify)
+Add an `imageGenConfigSchema` entry:
+- Section "Image Settings" with fields:
+  - `prompt` (textarea, required) -- the image description
+  - `style` (select) -- options: vivid, photorealistic, anime, watercolor, pixel-art, film-noir
+  - `agentId` (text, optional) -- for logging which agent requested it
+- Register it in the `schemas` record under `'image-gen'`
 
-Add JWT verification disabled for this function so auth is handled in-code:
+### 1.3 Create ImageGenNode component
 
+**File: `src/components/nodes/ImageGenNode.tsx`** (Create)
+
+A node card similar to `HTTPRequestNode` but with an `Image` icon from lucide-react. Shows title, subtitle, and input/output ports.
+
+### 1.4 Register in node exports
+
+**File: `src/components/nodes/index.ts`**
+
+Add `export { ImageGenNode } from './ImageGenNode'`
+
+### 1.5 Add to NodeSearchPalette
+
+**File: `src/components/canvas/NodeSearchPalette.tsx`**
+
+Add an entry in the "Tools" category:
+```
+{ id: 'image-gen', type: 'image-gen', label: 'Image Generator', description: 'Generate images via Gemini Imagen', icon: ImageIcon }
+```
+
+### 1.6 Add to CanvasNode renderer
+
+**File: `src/components/canvas/CanvasNode.tsx`**
+
+Add case for `'image-gen'` in the node type switch, rendering `ImageGenNode`.
+
+### 1.7 Create a service helper
+
+**File: `src/lib/generateImage.ts`** (Create)
+
+A thin wrapper that calls the edge function:
+```typescript
+import { supabase } from '@/integrations/supabase/client';
+
+export async function generateImage(params: {
+  prompt: string;
+  style?: string;
+  agentId?: string;
+}) {
+  const { data, error } = await supabase.functions.invoke('generate-image', {
+    body: params,
+  });
+  if (error) throw error;
+  return data as { success: boolean; imageDataUrl?: string; error?: string; message?: string };
+}
+```
+
+---
+
+## Part 2: Additional GenAI Edge Functions
+
+These cover the most common Gemini API capabilities an agent workflow would need. All follow the same pattern as `generate-image`: Deno edge function reading `GEMINI_API_KEY` from secrets, CORS headers, typed request/response.
+
+### 2.1 `gemini-chat` -- Text/chat completions
+
+**File: `supabase/functions/gemini-chat/index.ts`** (Create)
+
+- Accepts `{ messages: {role, content}[], model?, temperature?, maxTokens? }`
+- Calls Gemini `generateContent` via `@google/genai`
+- Returns `{ success: true, text: "...", usage: {...} }` or streaming SSE
+- Supports models: `gemini-2.5-flash`, `gemini-2.5-pro`
+- Default model: `gemini-2.5-flash`
+
+### 2.2 `gemini-embed` -- Text embeddings
+
+**File: `supabase/functions/gemini-embed/index.ts`** (Create)
+
+- Accepts `{ text: string | string[], model? }`
+- Calls Gemini `embedContent`
+- Returns `{ success: true, embeddings: number[][] }`
+- Default model: `text-embedding-004`
+
+### 2.3 `gemini-vision` -- Image understanding / analysis
+
+**File: `supabase/functions/gemini-vision/index.ts`** (Create)
+
+- Accepts `{ prompt: string, imageUrl: string, model? }`
+- Sends image + text to Gemini multimodal
+- Returns `{ success: true, text: "..." }`
+- Default model: `gemini-2.5-flash`
+
+### 2.4 Config updates
+
+**File: `supabase/config.toml`**
+
+Add entries for each new function:
 ```toml
-[functions.generate-image]
+[functions.gemini-chat]
+verify_jwt = false
+
+[functions.gemini-embed]
+verify_jwt = false
+
+[functions.gemini-vision]
 verify_jwt = false
 ```
 
-### Step 4: Deploy
+### 2.5 Add corresponding node types + config schemas
 
-The function will be auto-deployed by Lovable after file creation. No manual `supabase functions deploy` needed.
+**File: `src/types/index.ts`** -- Add `'gemini-chat' | 'gemini-embed' | 'gemini-vision'` to `NodeType`
 
-## After Deployment
+**File: `src/lib/nodeConfig.ts`** -- Add config schemas for each:
+- `gemini-chat`: model selector, temperature, maxTokens, system prompt
+- `gemini-embed`: model selector, input text
+- `gemini-vision`: model selector, prompt, image source
 
-- **Open RPG** calls it via `supabase.functions.invoke('generate-image', { body: { prompt, style, agentId } })` -- will work immediately once the function exists and the secret is set.
-- **Agent Artel Studio** can call the same endpoint with the same request shape for any image generation needs in the Studio UI.
+**File: `src/components/canvas/NodeSearchPalette.tsx`** -- Add entries in a new "Gemini AI" category
+
+### 2.6 Service helpers
+
+**File: `src/lib/geminiServices.ts`** (Create)
+
+Thin wrappers for each edge function using `supabase.functions.invoke(...)`.
+
+---
 
 ## Files Summary
 
 | File | Action |
 |------|--------|
-| `supabase/functions/generate-image/index.ts` | Create |
-| `supabase/config.toml` | Modify (add `[functions.generate-image]`) |
+| `src/types/index.ts` | Modify -- add new node types |
+| `src/lib/nodeConfig.ts` | Modify -- add config schemas |
+| `src/components/nodes/ImageGenNode.tsx` | Create |
+| `src/components/nodes/index.ts` | Modify -- add export |
+| `src/components/canvas/NodeSearchPalette.tsx` | Modify -- add palette entries |
+| `src/components/canvas/CanvasNode.tsx` | Modify -- add render cases |
+| `src/lib/generateImage.ts` | Create |
+| `src/lib/geminiServices.ts` | Create |
+| `supabase/functions/gemini-chat/index.ts` | Create |
+| `supabase/functions/gemini-embed/index.ts` | Create |
+| `supabase/functions/gemini-vision/index.ts` | Create |
+| `supabase/config.toml` | Modify -- add function entries |
 
-## Secret Required
+No new secrets needed -- all functions reuse the existing `GEMINI_API_KEY`.
 
-| Secret | Source |
-|--------|--------|
-| `GEMINI_API_KEY` | Google AI Studio or Cloud Console |
