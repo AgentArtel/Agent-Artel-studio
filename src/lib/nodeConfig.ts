@@ -594,9 +594,9 @@ const geminiEmbedConfigSchema: NodeConfigSchema = {
           id: 'model',
           type: 'select',
           label: 'Model',
-          defaultValue: 'text-embedding-004',
+          defaultValue: 'gemini-embedding-001',
           options: [
-            { label: 'Text Embedding 004', value: 'text-embedding-004' },
+            { label: 'Gemini Embedding 001', value: 'gemini-embedding-001' },
           ],
         },
         {

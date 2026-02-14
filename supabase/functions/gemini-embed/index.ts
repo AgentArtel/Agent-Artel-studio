@@ -41,7 +41,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const ai = new GoogleGenAI({ apiKey })
-    const model = body.model || 'text-embedding-004'
+    const model = body.model || 'gemini-embedding-001'
     const texts = Array.isArray(body.text) ? body.text : [body.text]
 
     const embeddings: number[][] = []
@@ -49,7 +49,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     for (const t of texts) {
       const response = await ai.models.embedContent({
         model,
-        contents: [{ role: 'user', parts: [{ text: t }] }],
+        contents: t,
       })
       if (response.embeddings && response.embeddings.length > 0) {
         embeddings.push(response.embeddings[0].values ?? [])
