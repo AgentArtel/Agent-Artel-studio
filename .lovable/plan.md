@@ -1,151 +1,94 @@
 
 
-# Supabase Schema Migration: Isolated `studio` Schema
+# Seed Studio Tables and Wire Dashboard to Supabase
 
-## Why a Separate Schema
+## Phase 1: Seed All Studio Tables
 
-The existing `public` schema contains Open-RPG game tables (`agent_configs`, `agent_memory`, `api_integrations`, `player_state`). To keep Agent Artel Studio completely isolated, all new tables will live in a dedicated **`studio`** schema. This prevents naming collisions, keeps RLS policies independent, and makes it easy to manage or drop Studio data without touching the game.
+Insert mock data into each of the 6 `studio` tables using the Supabase insert tool. Since auth is not implemented and RLS is disabled, we will use a placeholder `user_id` (`00000000-0000-0000-0000-000000000000`) for all user-owned rows.
 
-## New Schema: `studio`
+### Data to Seed
 
-### Tables to Create
+**studio.workflows** (6 rows -- superset from WorkflowList, which covers Dashboard's 4):
 
-#### 1. `studio.workflows`
-Replaces mock data in Dashboard and WorkflowList (10 combined mock rows).
+| name | description | status | node_count | execution_count | last_run_at |
+|------|-------------|--------|------------|-----------------|-------------|
+| AI Content Generator | Generates blog posts from keywords using OpenAI | active | 5 | 142 | now() - 2min |
+| Customer Support Bot | Auto-replies to common questions with AI | active | 8 | 89 | now() - 15min |
+| Email Automation | Sends weekly newsletters to subscribers | inactive | 4 | 56 | null |
+| Data Sync | Syncs data between platforms every hour | error | 12 | 234 | now() - 2h |
+| Slack Notifications | Sends alerts for important events | active | 3 | 567 | now() - 1h |
+| Lead Scoring | Scores leads based on behavior | active | 7 | 123 | now() - 30min |
 
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| id | uuid PK | gen_random_uuid() | |
-| user_id | uuid NOT NULL | auth.uid() | Owner |
-| name | text NOT NULL | | |
-| description | text | '' | |
-| status | text NOT NULL | 'draft' | active, inactive, draft, error |
-| node_count | integer | 0 | |
-| execution_count | integer | 0 | |
-| last_run_at | timestamptz | null | |
-| nodes_data | jsonb | '[]' | Canvas NodeData[] |
-| connections_data | jsonb | '[]' | Canvas Connection[] |
-| created_at | timestamptz | now() | |
-| updated_at | timestamptz | now() | |
+**studio.executions** (7 rows -- references workflow IDs from above):
 
-#### 2. `studio.executions`
-Replaces ExecutionHistory mock data (7 rows). Also powers the Dashboard chart via aggregation.
+Each row links to a workflow via `workflow_id` FK. Status values: success, running, error. Duration in ms.
 
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| id | uuid PK | gen_random_uuid() | |
-| workflow_id | uuid FK | | References studio.workflows |
-| user_id | uuid NOT NULL | auth.uid() | |
-| status | text NOT NULL | 'pending' | pending, running, success, error |
-| started_at | timestamptz | now() | |
-| completed_at | timestamptz | null | |
-| duration_ms | integer | null | |
-| node_results | jsonb | '{}' | |
-| error_message | text | null | |
-| created_at | timestamptz | now() | |
+**studio.activity_log** (5 rows):
 
-#### 3. `studio.activity_log`
-Replaces Dashboard `mockActivities` (5 rows).
+Types: success, execution, created, error, updated with corresponding messages and workflow names.
 
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| id | uuid PK | gen_random_uuid() | |
-| user_id | uuid NOT NULL | auth.uid() | |
-| type | text NOT NULL | | execution, success, error, created, updated |
-| message | text NOT NULL | | |
-| workflow_name | text | null | Denormalized for fast reads |
-| workflow_id | uuid FK | null | References studio.workflows |
-| created_at | timestamptz | now() | |
+**studio.credentials** (4 rows):
 
-#### 4. `studio.credentials`
-Replaces Credentials mock data (4 rows).
+OpenAI Production, Slack Bot Token, GitHub PAT, Stripe Test Key with masked values.
 
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| id | uuid PK | gen_random_uuid() | |
-| user_id | uuid NOT NULL | auth.uid() | |
-| name | text NOT NULL | | |
-| service | text NOT NULL | | |
-| encrypted_value | text NOT NULL | | Stored masked on client |
-| last_used_at | timestamptz | null | |
-| created_at | timestamptz | now() | |
-| updated_at | timestamptz | now() | |
+**studio.templates** (6 rows):
 
-#### 5. `studio.templates`
-Replaces AgentLibrary mock data (6 rows). Global/public -- no user_id.
+AI Content Generator, Customer Support Bot, Lead Scoring Automation, Social Media Scheduler, Data Pipeline, Email Drip Campaign across Marketing/Sales/Support/DevOps categories.
 
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| id | uuid PK | gen_random_uuid() | |
-| name | text NOT NULL | | |
-| description | text | '' | |
-| category | text | 'General' | |
-| difficulty | text | 'beginner' | beginner, intermediate, advanced |
-| node_count | integer | 0 | |
-| nodes_data | jsonb | '[]' | |
-| connections_data | jsonb | '[]' | |
-| created_at | timestamptz | now() | |
+**studio.profiles** (1 row):
 
-#### 6. `studio.profiles`
-Replaces Settings inline profile values.
+John Doe profile with default notification and UI preferences.
 
-| Column | Type | Default | Notes |
-|--------|------|---------|-------|
-| id | uuid PK | | Same as auth.users id |
-| first_name | text | '' | |
-| last_name | text | '' | |
-| email | text | '' | |
-| avatar_url | text | null | |
-| notification_prefs | jsonb | (see below) | |
-| ui_prefs | jsonb | (see below) | |
-| created_at | timestamptz | now() | |
-| updated_at | timestamptz | now() | |
+## Phase 2: Wire Dashboard to Supabase
 
-Default for `notification_prefs`: `{"email":true,"push":false,"executions":true,"errors":true}`
-Default for `ui_prefs`: `{"darkMode":true,"compactView":false,"autoSave":true}`
+Replace all three mock arrays in `Dashboard.tsx` with live Supabase queries.
 
-## RLS Policies
+### Changes to `src/pages/Dashboard.tsx`:
 
-**User-owned tables** (workflows, executions, activity_log, credentials, profiles):
-- SELECT / INSERT / UPDATE / DELETE: `auth.uid() = user_id` (profiles uses `auth.uid() = id`)
+1. **Remove** `mockActivities`, `mockWorkflows`, `chartData`, `chartLabels` constants
+2. **Add imports**: `supabase` client, `useQuery` from TanStack
+3. **Add 3 queries**:
+   - `useQuery` for workflows: `supabase.schema('studio').from('workflows').select('*').order('updated_at', { ascending: false }).limit(4)` -- feeds the WorkflowPreview cards
+   - `useQuery` for activity_log: `supabase.schema('studio').from('activity_log').select('*').order('created_at', { ascending: false }).limit(10)` -- feeds ActivityFeed
+   - `useQuery` for executions (chart): `supabase.schema('studio').from('executions').select('started_at').order('started_at', { ascending: true })` -- aggregate monthly counts for ExecutionChart
+4. **Add stat queries**: Compute dashboard stats (active workflow count, today's executions, success rate, avg duration) from the same query results
+5. **Map DB rows** to component prop shapes:
+   - Workflows: map `last_run_at` to relative time string (`lastRun`), pass `execution_count` as `executionCount`
+   - Activities: map `created_at` to relative time string (`timestamp`), rename `workflow_name` to `workflowName`
+   - Chart: group executions by month, produce `data: number[]` and `labels: string[]`
+6. **Add loading states**: Show skeleton/loading indicator while queries are in-flight
+7. **Add error handling**: Fallback to empty arrays on error
 
-**Templates** (global, read-only):
-- SELECT: open to all authenticated users
-- INSERT / UPDATE / DELETE: none (admin via dashboard only)
+### Helper: Relative Time Formatter
 
-## Triggers
+Create a small utility `src/lib/formatRelativeTime.ts` that converts a timestamp to "2m ago", "1h ago", etc. This will be reused across all pages as we migrate them.
 
-1. **`updated_at` auto-update** on `studio.workflows`, `studio.credentials`, `studio.profiles` -- reuses existing `update_timestamp()` function from public schema.
-2. **Profile auto-creation** -- a `SECURITY DEFINER` function creates a `studio.profiles` row when a new `auth.users` row is inserted.
+## Technical Details
 
-## Seed Data
+### Supabase Schema Querying
 
-After table creation, we insert the existing mock data as seed rows so the UI is unchanged on first load:
-- 6 workflows (from WorkflowList)
-- 7 executions (from ExecutionHistory)
-- 5 activity log entries (from Dashboard)
-- 4 credentials (from Credentials)
-- 6 templates (from AgentLibrary)
-
-Since auth is not yet implemented, seed data will use a placeholder `user_id`. Once auth is added, RLS will scope data to the logged-in user.
-
-## Supabase Client Update
-
-The generated types file (`src/integrations/supabase/types.ts`) only covers the `public` schema. After migration, the Supabase client will need to query the `studio` schema explicitly:
+Since the tables are in the `studio` schema (not `public`), every query must use:
 
 ```text
-supabase.schema('studio').from('workflows').select('*')
+supabase.schema('studio').from('table_name')...
 ```
 
-Alternatively, we can expose `studio` tables through the PostgREST API by granting the necessary permissions, which happens automatically when we enable RLS on the schema.
+### Dashboard Stat Computation
 
-## Implementation Order
+Stats will be derived from query results rather than separate queries:
+- **Active Workflows**: `workflows.filter(w => w.status === 'active').length`
+- **Executions Today**: `executions.filter(e => isToday(e.started_at)).length`
+- **Success Rate**: `successCount / totalCount * 100` from executions
+- **Avg Duration**: `sum(duration_ms) / count` from completed executions
 
-1. **SQL Migration** -- Create the `studio` schema, all 6 tables, RLS policies, and triggers in a single migration
-2. **Seed Data** -- Insert mock data rows into all tables using the insert tool
-3. **Code Changes** (separate follow-up) -- Replace `const mockXxx` arrays with `useQuery` hooks per page
+### Files Created/Modified
 
-## Important: Auth Prerequisite
+| File | Action |
+|------|--------|
+| `src/lib/formatRelativeTime.ts` | Create -- relative time utility |
+| `src/pages/Dashboard.tsx` | Modify -- replace mock data with Supabase queries |
 
-All user-owned tables require `auth.uid()`. Until authentication is implemented, data will only be visible via the Supabase dashboard or with RLS temporarily relaxed. The plan accounts for this by seeding data and noting auth as a required next step.
+### Seed Data Insertion
+
+All seed data will be inserted via the Supabase insert tool (not migrations). Workflows are inserted first since executions and activity_log reference workflow IDs via foreign keys.
 
