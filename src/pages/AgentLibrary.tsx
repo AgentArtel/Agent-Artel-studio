@@ -4,6 +4,7 @@ import { SearchBar } from '@/components/workflow/SearchBar';
 import { EmptyState } from '@/components/ui-custom/EmptyState';
 import { Chip } from '@/components/ui-custom/Chip';
 import { Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 
 const mockTemplates = [
   { id: '1', name: 'AI Content Generator', description: 'Generate blog posts, social media content, and marketing copy using AI', category: 'Marketing', difficulty: 'beginner' as const, nodes: 5 },
@@ -16,7 +17,11 @@ const mockTemplates = [
 
 const categories = ['All', 'Marketing', 'Sales', 'Support', 'DevOps'];
 
-export const AgentLibrary: React.FC = () => {
+interface AgentLibraryProps {
+  onNavigate: (page: string) => void;
+}
+
+export const AgentLibrary: React.FC<AgentLibraryProps> = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -47,7 +52,7 @@ export const AgentLibrary: React.FC = () => {
       {filteredTemplates.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTemplates.map((template) => (
-            <TemplateCard key={template.id} {...template} onUse={() => {}} onPreview={() => {}} />
+            <TemplateCard key={template.id} {...template} onUse={() => onNavigate('editor')} onPreview={() => toast.info('Template preview coming soon')} />
           ))}
         </div>
       ) : (

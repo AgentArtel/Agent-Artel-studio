@@ -16,7 +16,11 @@ const mockWorkflows = [
   { id: '6', name: 'Lead Scoring', description: 'Scores leads based on behavior', status: 'active' as const, lastRun: '30m ago', executionCount: 123, nodes: 7 },
 ];
 
-export const WorkflowList: React.FC = () => {
+interface WorkflowListProps {
+  onNavigate: (page: string) => void;
+}
+
+export const WorkflowList: React.FC<WorkflowListProps> = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'error'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'lastRun' | 'created'>('lastRun');
@@ -37,7 +41,7 @@ export const WorkflowList: React.FC = () => {
           <h1 className="text-2xl font-semibold text-white">Workflows</h1>
           <p className="text-white/50 mt-1">Manage and monitor your automation workflows</p>
         </div>
-        <Button className="bg-green text-dark hover:bg-green-light">
+        <Button className="bg-green text-dark hover:bg-green-light" onClick={() => onNavigate('editor')}>
           <Plus className="w-4 h-4 mr-2" /> Create Workflow
         </Button>
       </div>
@@ -67,11 +71,11 @@ export const WorkflowList: React.FC = () => {
       {filteredWorkflows.length > 0 ? (
         <div className={cn("grid gap-4", viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1")}>
           {filteredWorkflows.map((workflow) => (
-            <WorkflowCard key={workflow.id} {...workflow} onRun={() => {}} onEdit={() => {}} />
+            <WorkflowCard key={workflow.id} {...workflow} onRun={() => {}} onEdit={() => onNavigate('editor')} />
           ))}
         </div>
       ) : (
-        <EmptyState title="No workflows found" description={searchQuery ? "Try adjusting your search or filters" : "Get started by creating your first workflow"} actionLabel="Create Workflow" onAction={() => {}} />
+        <EmptyState title="No workflows found" description={searchQuery ? "Try adjusting your search or filters" : "Get started by creating your first workflow"} actionLabel="Create Workflow" onAction={() => onNavigate('editor')} />
       )}
     </div>
   );

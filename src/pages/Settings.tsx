@@ -4,6 +4,7 @@ import { FormInput } from '@/components/ui-custom/FormInput';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui-custom/Avatar';
 import { Bell, User, Shield, Palette } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SettingsSectionProps {
   title: string;
@@ -25,7 +26,11 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({ title, description, i
   </div>
 );
 
-export const Settings: React.FC = () => {
+interface SettingsProps {
+  onNavigate: (page: string) => void;
+}
+
+export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
   const [notifications, setNotifications] = useState({ email: true, push: false, executions: true, errors: true });
   const [preferences, setPreferences] = useState({ darkMode: true, compactView: false, autoSave: true });
 
@@ -77,16 +82,16 @@ export const Settings: React.FC = () => {
         <div className="space-y-6">
           <SettingsSection title="Security" description="Manage your security settings" icon={<Shield className="w-5 h-5" />}>
             <div className="space-y-3">
-              <Button variant="ghost" className="w-full justify-start text-white/70 hover:text-white">Change Password</Button>
-              <Button variant="ghost" className="w-full justify-start text-white/70 hover:text-white">Two-Factor Auth</Button>
-              <Button variant="ghost" className="w-full justify-start text-white/70 hover:text-white">API Keys</Button>
+              <Button variant="ghost" className="w-full justify-start text-white/70 hover:text-white" onClick={() => toast.info('Coming soon')}>Change Password</Button>
+              <Button variant="ghost" className="w-full justify-start text-white/70 hover:text-white" onClick={() => toast.info('Coming soon')}>Two-Factor Auth</Button>
+              <Button variant="ghost" className="w-full justify-start text-white/70 hover:text-white" onClick={() => onNavigate('credentials')}>API Keys</Button>
             </div>
           </SettingsSection>
 
           <div className="bg-dark-100/50 border border-white/5 rounded-xl p-6">
             <h3 className="text-sm font-medium text-white mb-2">Danger Zone</h3>
             <p className="text-xs text-white/50 mb-4">These actions cannot be undone</p>
-            <Button variant="ghost" className="w-full text-danger hover:text-danger hover:bg-danger/10">Delete Account</Button>
+            <Button variant="ghost" className="w-full text-danger hover:text-danger hover:bg-danger/10" onClick={() => toast.error('Account deletion is not available in demo mode')}>Delete Account</Button>
           </div>
         </div>
       </div>
