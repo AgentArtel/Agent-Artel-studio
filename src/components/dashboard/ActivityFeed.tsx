@@ -12,11 +12,13 @@ interface ActivityItem {
 
 interface ActivityFeedProps {
   activities: ActivityItem[];
+  onItemClick?: () => void;
   className?: string;
 }
 
 export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   activities,
+  onItemClick,
   className,
 }) => {
   const getIcon = (type: ActivityItem['type']) => {
@@ -48,9 +50,14 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         {activities.map((activity, index) => (
           <div 
             key={activity.id}
+            role={onItemClick ? 'button' : undefined}
+            tabIndex={onItemClick ? 0 : undefined}
+            onClick={onItemClick}
+            onKeyDown={onItemClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click(); } : undefined}
             className={cn(
               "flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors",
-              "animate-fade-in"
+              "animate-fade-in",
+              onItemClick && "cursor-pointer"
             )}
             style={{ animationDelay: `${index * 50}ms` }}
           >

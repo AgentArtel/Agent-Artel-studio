@@ -151,7 +151,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         <div className="space-y-6">
           {loadingExecs ? <Skeleton className="h-52 rounded-xl" /> : <ExecutionChart data={chartData} labels={monthLabels} />}
-          {loadingActivities ? <Skeleton className="h-64 rounded-xl" /> : <ActivityFeed activities={mappedActivities} />}
+          {loadingActivities ? <Skeleton className="h-64 rounded-xl" /> : <ActivityFeed activities={mappedActivities} onItemClick={() => onNavigate('executions')} />}
         </div>
       </div>
     </div>

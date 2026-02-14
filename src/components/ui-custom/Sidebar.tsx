@@ -45,7 +45,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       className={cn(
         "fixed left-0 top-0 h-full bg-dark-100 border-r border-white/5 z-40",
         "transition-all duration-moderate ease-out-expo",
-        isCollapsed ? 'w-16' : 'w-60',
+        "max-md:w-16",
+        isCollapsed ? 'w-16' : 'w-60 md:w-60',
         className
       )}
     >

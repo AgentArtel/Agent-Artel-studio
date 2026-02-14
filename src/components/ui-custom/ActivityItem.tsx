@@ -35,10 +35,10 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white">{title}</p>
-        <p className="text-xs text-white/50 truncate">{description}</p>
+        <p className="text-sm font-medium text-white italic">{title}</p>
+        <p className="text-xs text-white/50 truncate italic">{description}</p>
       </div>
-      <span className="text-xs text-white/40 whitespace-nowrap">{timestamp}</span>
+      <span className="text-xs text-white/40 whitespace-nowrap italic">{timestamp}</span>
     </div>
   );
 };

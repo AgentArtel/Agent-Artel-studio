@@ -31,7 +31,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-white/60 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-white">{value}</p>
+          <p className="text-2xl font-bold text-white italic">{value}</p>
           {change && (
             <div className="flex items-center gap-1 mt-2">
               {change.isPositive ? (

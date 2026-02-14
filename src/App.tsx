@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,9 +18,19 @@ const queryClient = new QueryClient();
 
 type Page = 'dashboard' | 'workflows' | 'executions' | 'credentials' | 'templates' | 'settings' | 'editor' | 'showcase';
 
+const MOBILE_BREAKPOINT = 768;
+
 const App = () => {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Default sidebar to collapsed on small viewports so content has room
+  useEffect(() => {
+    const check = () => setSidebarCollapsed((c) => (window.innerWidth < MOBILE_BREAKPOINT ? true : c));
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const onNavigate = (page: string) => setCurrentPage(page as Page);
 
@@ -44,7 +54,7 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <Sonner />
+          <Sonner theme="dark" />
           <div className="min-h-screen bg-dark text-white font-urbanist">
             {renderPage()}
           </div>
@@ -57,7 +67,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner theme="dark" />
         <div className="min-h-screen bg-dark text-white font-urbanist">
           <Sidebar
             isCollapsed={sidebarCollapsed}
@@ -67,6 +77,7 @@ const App = () => {
           />
           <main className={cn(
             "transition-all duration-moderate ease-out-expo",
+            "max-md:ml-16",
             sidebarCollapsed ? 'ml-16' : 'ml-60'
           )}>
             {renderPage()}

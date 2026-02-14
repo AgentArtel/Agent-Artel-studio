@@ -67,7 +67,7 @@ export const ExecutionChart: React.FC<ExecutionChartProps> = ({
       {labels && (
         <div className="flex justify-between mt-2 text-xs text-white/30">
           {labels.map((label, index) => (
-            <span key={index}>{label}</span>
+            <span key={index} className="italic">{label}</span>
           ))}
         </div>
       )}

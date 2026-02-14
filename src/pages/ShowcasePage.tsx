@@ -144,9 +144,11 @@ export const ShowcasePage: React.FC = () => {
                 <CardContent>
                   <div className="relative h-64 bg-dark rounded-lg overflow-hidden border border-white/10">
                     <GridBackground />
-                    <div className="absolute inset-0 p-8 flex gap-8 flex-wrap">
+                    <div className="absolute inset-0 p-8 flex gap-8 flex-wrap items-start">
                       {sampleNodes.map((node) => (
-                        <div key={node.id} className="relative"><CanvasNode data={node} onClick={() => {}} /></div>
+                        <div key={node.id} className="relative w-[220px] min-h-[140px] flex-shrink-0">
+                          <CanvasNode data={{ ...node, position: { x: 0, y: 0 } }} onClick={() => {}} />
+                        </div>
                       ))}
                     </div>
                   </div>

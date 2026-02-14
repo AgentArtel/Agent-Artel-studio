@@ -50,8 +50,20 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
 
   const credentialType = credentialTypes.find(t => t.id === selectedType);
 
+  const requiredFieldsValid = !credentialType?.fields?.length || credentialType.fields
+    .filter(f => f.required)
+    .every(f => (values[f.key] ?? '').trim() !== '');
+  const canSubmit = (name ?? '').trim() !== '' && selectedType !== '' && requiredFieldsValid;
+
+  const getFieldError = (field: CredentialField): string | undefined => {
+    if (!field.required) return undefined;
+    const val = (values[field.key] ?? '').trim();
+    return val === '' ? `${field.label} is required` : undefined;
+  };
+
   const handleSave = () => {
-    onSave({ type: selectedType, name: name || credentialType?.name || 'New Credential', values });
+    if (!canSubmit) return;
+    onSave({ type: selectedType, name: name.trim() || credentialType?.name || 'New Credential', values });
     onClose();
   };
 
@@ -108,6 +120,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
               type={field.type}
               placeholder={field.placeholder}
               helperText={field.helperText}
+              error={getFieldError(field)}
             />
           ))}
           {testResult && (
@@ -130,7 +143,7 @@ export const CredentialModal: React.FC<CredentialModalProps> = ({
           </button>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">Cancel</button>
-            <button onClick={handleSave} className="px-6 py-2 rounded-xl text-sm bg-green text-dark font-medium hover:bg-green/90 transition-colors">Save</button>
+            <button onClick={handleSave} disabled={!canSubmit} className="px-6 py-2 rounded-xl text-sm bg-green text-dark font-medium hover:bg-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
           </div>
         </div>
       </div>

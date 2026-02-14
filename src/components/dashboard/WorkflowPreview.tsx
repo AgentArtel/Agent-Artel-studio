@@ -1,6 +1,13 @@
 import React from 'react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Play, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Play, MoreHorizontal, Pencil, List } from 'lucide-react';
 
 interface WorkflowPreviewProps {
   id: string;
@@ -45,12 +52,24 @@ export const WorkflowPreview: React.FC<WorkflowPreviewProps> = ({
           <div className={cn("w-2 h-2 rounded-full", config.dot, config.pulse && "animate-pulse")} />
           <span className="text-xs text-white/50">{config.label}</span>
         </div>
-        <button 
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 bg-dark-100 border-white/10 text-white">
+            <DropdownMenuItem onClick={(e) => { e.preventDefault(); onEdit?.(); }} className="focus:bg-white/10 focus:text-white cursor-pointer">
+              <Pencil className="w-4 h-4 mr-2" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.preventDefault(); toast.info('View Executions coming soon'); }} className="focus:bg-white/10 focus:text-white cursor-pointer">
+              <List className="w-4 h-4 mr-2" /> View Executions
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <h4 className="text-sm font-medium text-white mb-1 italic">{name}</h4>
@@ -60,8 +79,8 @@ export const WorkflowPreview: React.FC<WorkflowPreviewProps> = ({
 
       <div className="flex items-center justify-between mt-4">
         <div className="flex items-center gap-3 text-xs text-white/40">
-          {lastRun && <span className="italic">Last run: {lastRun}</span>}
-          <span className="italic">{executionCount} runs</span>
+          {lastRun && <span>Last run: <span className="italic">{lastRun}</span></span>}
+          <span><span className="italic">{executionCount}</span> runs</span>
         </div>
         <button 
           className="w-7 h-7 rounded-lg bg-green/15 flex items-center justify-center text-green hover:bg-green/25 transition-colors"

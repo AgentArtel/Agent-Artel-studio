@@ -44,7 +44,10 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ onNavigate }
           <h1 className="text-2xl font-semibold text-white">Execution History</h1>
           <p className="text-white/50 mt-1">View and manage workflow executions</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-dark-100 border border-white/5 rounded-lg text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+        <button
+          className="flex items-center gap-2 px-4 py-2 bg-dark-100 border border-white/5 rounded-lg text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+          onClick={() => { setSearchQuery(''); setStatusFilter('all'); toast.info('Refreshed'); }}
+        >
           <RotateCcw className="w-4 h-4" /> Refresh
         </button>
       </div>
@@ -62,7 +65,7 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ onNavigate }
       {filteredExecutions.length > 0 ? (
         <div className="space-y-2">
           {filteredExecutions.map((execution) => (
-            <ExecutionRow key={execution.id} {...execution} onView={() => toast.info('Execution detail view coming soon')} onRetry={() => {}} />
+            <ExecutionRow key={execution.id} {...execution} onView={() => toast.info('Execution detail view coming soon')} onRetry={() => toast.info('Retrying execution...')} />
           ))}
         </div>
       ) : (
