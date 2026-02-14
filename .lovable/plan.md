@@ -1,165 +1,133 @@
 
 
-# Wire generate-image into Studio UI + Add GenAI Edge Functions
+# Create Studio Tables in Public Schema + Wire Real Execution Engine
 
-## Overview
+## Problem
 
-Two parts: (1) integrate the existing `generate-image` edge function as a callable node type in Agent Artel Studio, and (2) add additional Gemini-powered edge functions for the most common GenAI capabilities agents would need.
+All dashboard/workflow/execution queries return 406 errors because the app uses `.schema('studio')` but PostgREST only exposes `public` and `game`. The execution engine currently uses mock timers with random success/failure instead of calling real Gemini edge functions.
 
----
+## Solution
 
-## Part 1: Wire generate-image into the Studio UI
+### Part 1: Fix 406 Errors -- Create Tables in Public Schema
 
-### 1.1 Add `image-gen` node type
+The `studio` schema has the tables but isn't exposed via PostgREST. We'll create equivalent tables in the `public` schema and update frontend code to query from `public` directly (removing all `.schema('studio')` calls).
 
-**File: `src/types/index.ts`**
+**Database Migration** -- Create 3 tables in `public`:
 
-Add `'image-gen'` to the `NodeType` union.
+```text
+studio_workflows
+  - id (uuid, PK, default gen_random_uuid())
+  - user_id (uuid, NOT NULL)
+  - name (text, NOT NULL)
+  - description (text, nullable)
+  - status (text, default 'draft')
+  - node_count (int, default 0)
+  - execution_count (int, default 0)
+  - last_run_at (timestamptz, nullable)
+  - nodes_data (jsonb, default '[]')
+  - connections_data (jsonb, default '[]')
+  - created_at, updated_at (timestamptz)
 
-### 1.2 Add node config schema
+studio_executions
+  - id (uuid, PK)
+  - workflow_id (uuid, FK -> studio_workflows)
+  - user_id (uuid, NOT NULL)
+  - status (text, default 'pending')
+  - started_at (timestamptz)
+  - completed_at (timestamptz, nullable)
+  - duration_ms (int, nullable)
+  - node_results (jsonb, default '{}')
+  - error_message (text, nullable)
+  - created_at (timestamptz)
 
-**File: `src/lib/nodeConfig.ts`**
-
-Add an `imageGenConfigSchema` entry:
-- Section "Image Settings" with fields:
-  - `prompt` (textarea, required) -- the image description
-  - `style` (select) -- options: vivid, photorealistic, anime, watercolor, pixel-art, film-noir
-  - `agentId` (text, optional) -- for logging which agent requested it
-- Register it in the `schemas` record under `'image-gen'`
-
-### 1.3 Create ImageGenNode component
-
-**File: `src/components/nodes/ImageGenNode.tsx`** (Create)
-
-A node card similar to `HTTPRequestNode` but with an `Image` icon from lucide-react. Shows title, subtitle, and input/output ports.
-
-### 1.4 Register in node exports
-
-**File: `src/components/nodes/index.ts`**
-
-Add `export { ImageGenNode } from './ImageGenNode'`
-
-### 1.5 Add to NodeSearchPalette
-
-**File: `src/components/canvas/NodeSearchPalette.tsx`**
-
-Add an entry in the "Tools" category:
-```
-{ id: 'image-gen', type: 'image-gen', label: 'Image Generator', description: 'Generate images via Gemini Imagen', icon: ImageIcon }
-```
-
-### 1.6 Add to CanvasNode renderer
-
-**File: `src/components/canvas/CanvasNode.tsx`**
-
-Add case for `'image-gen'` in the node type switch, rendering `ImageGenNode`.
-
-### 1.7 Create a service helper
-
-**File: `src/lib/generateImage.ts`** (Create)
-
-A thin wrapper that calls the edge function:
-```typescript
-import { supabase } from '@/integrations/supabase/client';
-
-export async function generateImage(params: {
-  prompt: string;
-  style?: string;
-  agentId?: string;
-}) {
-  const { data, error } = await supabase.functions.invoke('generate-image', {
-    body: params,
-  });
-  if (error) throw error;
-  return data as { success: boolean; imageDataUrl?: string; error?: string; message?: string };
-}
+studio_activity_log
+  - id (uuid, PK)
+  - user_id (uuid, NOT NULL)
+  - type (text, NOT NULL)
+  - message (text, NOT NULL)
+  - workflow_name (text, nullable)
+  - workflow_id (uuid, nullable)
+  - created_at (timestamptz)
 ```
 
----
+Tables are prefixed with `studio_` to avoid collision with existing `public` tables. RLS will be disabled for development (matching current approach).
 
-## Part 2: Additional GenAI Edge Functions
+**Frontend Changes** -- Update 3 files:
 
-These cover the most common Gemini API capabilities an agent workflow would need. All follow the same pattern as `generate-image`: Deno edge function reading `GEMINI_API_KEY` from secrets, CORS headers, typed request/response.
+| File | Change |
+|------|--------|
+| `src/pages/Dashboard.tsx` | Replace `.schema('studio').from('workflows')` with `.from('studio_workflows')`, same for `executions` and `activity_log` |
+| `src/pages/WorkflowList.tsx` | Replace `.schema('studio').from('workflows')` with `.from('studio_workflows')` |
+| `src/pages/ExecutionHistory.tsx` | Replace `.schema('studio').from('executions')` with `.from('studio_executions')` and `.from('workflows')` with `.from('studio_workflows')` |
 
-### 2.1 `gemini-chat` -- Text/chat completions
+### Part 2: Real Execution Engine with Gemini Edge Functions
 
-**File: `supabase/functions/gemini-chat/index.ts`** (Create)
+Replace the mock `setTimeout` + `Math.random()` logic in `useExecution.ts` with actual edge function calls based on node type.
 
-- Accepts `{ messages: {role, content}[], model?, temperature?, maxTokens? }`
-- Calls Gemini `generateContent` via `@google/genai`
-- Returns `{ success: true, text: "...", usage: {...} }` or streaming SSE
-- Supports models: `gemini-2.5-flash`, `gemini-2.5-pro`
-- Default model: `gemini-2.5-flash`
+**File: `src/hooks/useExecution.ts`** -- Major rewrite of `executeNextNode`:
 
-### 2.2 `gemini-embed` -- Text embeddings
-
-**File: `supabase/functions/gemini-embed/index.ts`** (Create)
-
-- Accepts `{ text: string | string[], model? }`
-- Calls Gemini `embedContent`
-- Returns `{ success: true, embeddings: number[][] }`
-- Default model: `text-embedding-004`
-
-### 2.3 `gemini-vision` -- Image understanding / analysis
-
-**File: `supabase/functions/gemini-vision/index.ts`** (Create)
-
-- Accepts `{ prompt: string, imageUrl: string, model? }`
-- Sends image + text to Gemini multimodal
-- Returns `{ success: true, text: "..." }`
-- Default model: `gemini-2.5-flash`
-
-### 2.4 Config updates
-
-**File: `supabase/config.toml`**
-
-Add entries for each new function:
-```toml
-[functions.gemini-chat]
-verify_jwt = false
-
-[functions.gemini-embed]
-verify_jwt = false
-
-[functions.gemini-vision]
-verify_jwt = false
+Currently the execution does this for every node:
+```
+setTimeout(() => {
+  const hasError = Math.random() < 0.1;  // fake 10% error rate
+  setNodeStatus(nodeId, hasError ? 'error' : 'success');
+}, 500 + Math.random() * 1000);  // fake delay
 ```
 
-### 2.5 Add corresponding node types + config schemas
+This will be replaced with a `executeNode` function that dispatches based on `node.type`:
 
-**File: `src/types/index.ts`** -- Add `'gemini-chat' | 'gemini-embed' | 'gemini-vision'` to `NodeType`
+- **`image-gen`**: Calls `generateImage({ prompt, style, agentId })` from `src/lib/generateImage.ts`
+- **`gemini-chat`**: Calls `geminiChat({ messages, model, temperature, maxTokens, systemPrompt })` from `src/lib/geminiServices.ts`
+- **`gemini-embed`**: Calls `geminiEmbed({ text, model })` from `src/lib/geminiServices.ts`
+- **`gemini-vision`**: Calls `geminiVision({ prompt, imageUrl, model })` from `src/lib/geminiServices.ts`
+- **`trigger`, `webhook`, `schedule`**: Pass through immediately (success) -- these are entry points
+- **Other node types** (`ai-agent`, `openai-chat`, `http-tool`, `code-tool`, etc.): Fall back to a simulated delay (since there's no backend for them yet), but log clearly that they're simulated
 
-**File: `src/lib/nodeConfig.ts`** -- Add config schemas for each:
-- `gemini-chat`: model selector, temperature, maxTokens, system prompt
-- `gemini-embed`: model selector, input text
-- `gemini-vision`: model selector, prompt, image source
+Each real node execution:
+1. Sets status to `running`
+2. Calls the appropriate edge function
+3. Stores the result in `nodeResults` (a new ref tracking per-node output data)
+4. Sets status to `success` or `error` based on response
+5. Passes output data downstream (available to next nodes via `nodeResults`)
 
-**File: `src/components/canvas/NodeSearchPalette.tsx`** -- Add entries in a new "Gemini AI" category
+The node's `config` object provides the parameters (prompt, model, etc.). The execution engine reads `node.config` to build the edge function request.
 
-### 2.6 Service helpers
+**New capability**: Node results will be stored so downstream nodes can reference upstream output. For example, a `gemini-chat` node's text output could feed into an `image-gen` node's prompt via a simple template system.
 
-**File: `src/lib/geminiServices.ts`** (Create)
+### Part 3: Seed Data
 
-Thin wrappers for each edge function using `supabase.functions.invoke(...)`.
-
----
+Insert a few sample rows into the new tables so the dashboard shows content immediately:
+- 2 sample workflows
+- 3 sample executions
+- 5 sample activity log entries
 
 ## Files Summary
 
 | File | Action |
 |------|--------|
-| `src/types/index.ts` | Modify -- add new node types |
-| `src/lib/nodeConfig.ts` | Modify -- add config schemas |
-| `src/components/nodes/ImageGenNode.tsx` | Create |
-| `src/components/nodes/index.ts` | Modify -- add export |
-| `src/components/canvas/NodeSearchPalette.tsx` | Modify -- add palette entries |
-| `src/components/canvas/CanvasNode.tsx` | Modify -- add render cases |
-| `src/lib/generateImage.ts` | Create |
-| `src/lib/geminiServices.ts` | Create |
-| `supabase/functions/gemini-chat/index.ts` | Create |
-| `supabase/functions/gemini-embed/index.ts` | Create |
-| `supabase/functions/gemini-vision/index.ts` | Create |
-| `supabase/config.toml` | Modify -- add function entries |
+| Migration SQL | Create `studio_workflows`, `studio_executions`, `studio_activity_log` tables |
+| `src/pages/Dashboard.tsx` | Modify -- remove `.schema('studio')`, use `studio_*` table names |
+| `src/pages/WorkflowList.tsx` | Modify -- same |
+| `src/pages/ExecutionHistory.tsx` | Modify -- same |
+| `src/hooks/useExecution.ts` | Major rewrite -- replace mock execution with real Gemini edge function calls |
 
-No new secrets needed -- all functions reuse the existing `GEMINI_API_KEY`.
+## Technical Details
+
+### Execution Engine Node Dispatch Logic
+
+```text
+switch (node.type):
+  'image-gen'     -> generateImage(config)
+  'gemini-chat'   -> geminiChat(config)
+  'gemini-embed'  -> geminiEmbed(config)
+  'gemini-vision' -> geminiVision(config)
+  'trigger' | 'webhook' | 'schedule' -> immediate pass-through
+  default         -> simulated 500-1500ms delay (placeholder)
+```
+
+### Error Handling
+
+- Edge function failures set the node to `error` status but do NOT stop the entire workflow
+- The error message is logged and stored in `nodeResults[nodeId].error`
+- If a critical upstream node fails, downstream nodes dependent on its output are marked `skipped`
 
