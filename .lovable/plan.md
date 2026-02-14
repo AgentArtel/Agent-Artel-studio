@@ -1,79 +1,57 @@
 
-# Wire ExecutionHistory to Supabase + Verify Navigation
+# Deploy `generate-image` Edge Function
 
 ## Overview
 
-Replace the hardcoded `mockExecutions` in `src/pages/ExecutionHistory.tsx` with live Supabase queries, then manually verify the Workflows page and navigation work correctly.
+Create and deploy the Supabase Edge Function `generate-image` on the shared project, and set the `GEMINI_API_KEY` secret. No schema changes needed.
 
-## Changes
+## Steps
 
-**File: `src/pages/ExecutionHistory.tsx`**
+### Step 1: Set the GEMINI_API_KEY secret
 
-1. **Add imports**: `useQuery` and `useQueryClient` from `@tanstack/react-query`, `supabase` from integrations, `formatRelativeTime` from lib, `Skeleton` from UI
-2. **Remove** the `mockExecutions` constant (lines 9-17)
-3. **Add two queries**:
-   - Executions: `supabase.schema('studio').from('executions').select('*').order('started_at', { ascending: false })` with key `['studio-executions']`
-   - Workflows (for name lookup): `supabase.schema('studio').from('workflows').select('id, name')` with key `['studio-workflow-names']`
-4. **Build a workflow name map** from the workflows query: `Record<string, string>` mapping `id -> name`
-5. **Map DB rows** to the shape `ExecutionRow` expects:
-   - `id` = execution id
-   - `workflowName` = lookup from workflow name map using `workflow_id` (fallback: `'Unknown Workflow'`)
-   - `status` = execution status (already matches: `success | error | running | pending`)
-   - `startedAt` = `formatRelativeTime(e.started_at)`
-   - `duration` = `e.duration_ms` (already in ms, matches `ExecutionRow` prop)
-6. **Update status counts** to derive from the mapped executions (not mock data)
-7. **Update Refresh button** to invalidate the executions query via `queryClient.invalidateQueries({ queryKey: ['studio-executions'] })`
-8. **Add loading state**: Show skeleton placeholders while loading
-9. **Filtering** remains client-side on the mapped data (search by workflowName, filter by status)
+Before writing any code, we need the Gemini API key stored as a Supabase secret. You'll be prompted to paste your key (from Google AI Studio or Cloud Console). This key will only be accessible inside Edge Functions -- neither the game server nor Agent Artel Studio will see it directly.
 
-## Technical Details
+### Step 2: Create the Edge Function
 
-The executions table has `workflow_id` (FK) but not the workflow name directly. Rather than a complex join through the `studio` schema (which PostgREST may not support well with `accept-profile`), we fetch workflows separately and join client-side. The workflows query is lightweight (just `id, name`) and may already be cached from Dashboard or WorkflowList navigation.
+**File: `supabase/functions/generate-image/index.ts`** (Create)
 
-```text
-// Executions query
-const { data: dbExecutions = [], isLoading } = useQuery({
-  queryKey: ['studio-executions'],
-  queryFn: async () => {
-    const { data, error } = await (supabase as any)
-      .schema('studio')
-      .from('executions')
-      .select('*')
-      .order('started_at', { ascending: false });
-    if (error) throw error;
-    return data as any[];
-  },
-});
+The full implementation as provided in the request:
+- CORS headers allowing `*` origin for MVP, supporting `POST` and `OPTIONS`
+- Validates request body (`prompt` required, `style` optional defaulting to `"vivid"`, `agentId` optional)
+- Reads `GEMINI_API_KEY` from Deno env (Edge Function secrets)
+- Calls `ai.models.generateImages()` with model `imagen-4.0-generate-001`
+- Returns `{ success: true, imageDataUrl: "data:image/png;base64,..." }` on success
+- Returns typed error codes: `api_unavailable`, `invalid_prompt`, `no_result`, `content_policy`, `api_error`, `method_not_allowed`
 
-// Workflows for name lookup
-const { data: dbWorkflowNames = [] } = useQuery({
-  queryKey: ['studio-workflow-names'],
-  queryFn: async () => {
-    const { data, error } = await (supabase as any)
-      .schema('studio')
-      .from('workflows')
-      .select('id, name');
-    if (error) throw error;
-    return data as any[];
-  },
-});
+### Step 3: Update `supabase/config.toml`
 
-// Build name map and map executions
-const nameMap = Object.fromEntries(dbWorkflowNames.map(w => [w.id, w.name]));
-const executions = dbExecutions.map(e => ({
-  id: e.id,
-  workflowName: nameMap[e.workflow_id] ?? 'Unknown Workflow',
-  status: e.status as 'success' | 'error' | 'running' | 'pending',
-  startedAt: formatRelativeTime(e.started_at),
-  duration: e.duration_ms,
-}));
+**File: `supabase/config.toml`** (Modify)
+
+Add JWT verification disabled for this function so auth is handled in-code:
+
+```toml
+[functions.generate-image]
+verify_jwt = false
 ```
 
-## Post-Implementation Verification
+### Step 4: Deploy
 
-After the code change, navigate through the app to verify:
+The function will be auto-deployed by Lovable after file creation. No manual `supabase functions deploy` needed.
 
-1. **Dashboard** -- workflows, activity feed, chart, and stats load from DB
-2. **Workflows page** -- cards load from DB, search/filter/sort work
-3. **Execution History** -- rows load from DB with correct workflow names, status filters work, Refresh button invalidates cache
-4. **Navigation** -- all sidebar links work correctly between pages
+## After Deployment
+
+- **Open RPG** calls it via `supabase.functions.invoke('generate-image', { body: { prompt, style, agentId } })` -- will work immediately once the function exists and the secret is set.
+- **Agent Artel Studio** can call the same endpoint with the same request shape for any image generation needs in the Studio UI.
+
+## Files Summary
+
+| File | Action |
+|------|--------|
+| `supabase/functions/generate-image/index.ts` | Create |
+| `supabase/config.toml` | Modify (add `[functions.generate-image]`) |
+
+## Secret Required
+
+| Secret | Source |
+|--------|--------|
+| `GEMINI_API_KEY` | Google AI Studio or Cloud Console |
