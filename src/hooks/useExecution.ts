@@ -211,6 +211,36 @@ async function executeNodeByType(
       return { success: false, error: result.error || result.message || 'Vision analysis failed' };
     }
 
+    // --- AI Agent (Gemini-powered) ---
+    case 'ai-agent': {
+      const systemPrompt = resolveTemplates(config.systemPrompt ?? 'You are a helpful assistant.', nodeResults);
+      const userPrompt = resolveTemplates(config.userPrompt ?? 'Hello', nodeResults);
+      const model = config.model ?? 'gemini-2.5-flash';
+      const temperature = config.temperature ? Number(config.temperature) : 0.7;
+      const maxTokens = config.maxTokens ? Number(config.maxTokens) : 4096;
+
+      const result = await geminiChat({
+        messages: [{ role: 'user', content: userPrompt }],
+        model,
+        temperature,
+        maxTokens,
+        systemPrompt,
+      });
+
+      if (result.success) {
+        return {
+          success: true,
+          data: {
+            text: result.text,
+            usage: result.usage,
+            model,
+            agentType: config.agentType ?? 'tools-agent',
+          },
+        };
+      }
+      return { success: false, error: result.error || result.message || 'Agent execution failed' };
+    }
+
     // --- Simulated nodes (no backend yet) ---
     default: {
       console.log(`[Execution] Simulating node "${node.title}" (type: ${node.type}) — no real backend`);

@@ -87,21 +87,26 @@ const initialNodes: NodeData[] = [
     isConfigured: true,
   },
   {
-    id: 'image-gen-1',
-    type: 'image-gen',
+    id: 'agent-1',
+    type: 'ai-agent',
     position: { x: 500, y: 200 },
-    title: 'Image Generator',
-    subtitle: 'Gemini Imagen',
+    title: 'AI Agent',
+    subtitle: 'Tools Agent',
     config: {
-      prompt: 'A futuristic robot in a neon-lit city',
-      style: 'vivid',
+      agentType: 'tools-agent',
+      model: 'gemini-2.5-flash',
+      systemPrompt: 'You are a helpful assistant. Respond concisely and clearly.',
+      userPrompt: 'Hello! Who are you and what can you do?',
+      temperature: 0.7,
+      maxTokens: 4096,
+      maxIterations: 5,
     },
     isConfigured: true,
   },
 ];
 
 const initialConnections: Connection[] = [
-  { id: 'conn-1', from: 'trigger-1', to: 'image-gen-1', fromPort: 'output', toPort: 'input' },
+  { id: 'conn-1', from: 'trigger-1', to: 'agent-1', fromPort: 'output', toPort: 'input' },
 ];
 
 // =============================================================================
@@ -230,7 +235,7 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [workflowName, setWorkflowName] = useState('Image Generation Workflow');
+  const [workflowName, setWorkflowName] = useState('AI Agent Workflow');
 
   // Mock credentials for import modal (will be replaced with Supabase query)
   const availableCredentials = [
