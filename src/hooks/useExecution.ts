@@ -17,6 +17,8 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { NodeData, Connection } from '@/types';
 import { generateImage } from '@/lib/generateImage';
 import { geminiChat, geminiEmbed, geminiVision } from '@/lib/geminiServices';
+import { loadMemory, saveMemory, clearMemory } from '@/lib/memoryService';
+import { supabase } from '@/integrations/supabase/client';
 
 export type NodeExecutionStatus = 'waiting' | 'running' | 'success' | 'error' | 'skipped';
 export type ExecutionState = 'idle' | 'running' | 'paused' | 'completed' | 'error';
@@ -138,7 +140,9 @@ function resolveTemplates(value: string, nodeResults: Record<string, any>): stri
  */
 async function executeNodeByType(
   node: NodeData,
-  nodeResults: Record<string, any>
+  nodeResults: Record<string, any>,
+  allNodes: NodeData[],
+  connections: Connection[]
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   const config = (node.config ?? {}) as Record<string, any>;
 
@@ -211,34 +215,181 @@ async function executeNodeByType(
       return { success: false, error: result.error || result.message || 'Vision analysis failed' };
     }
 
-    // --- AI Agent (Gemini-powered) ---
+    // --- HTTP Tool (real fetch via edge function proxy) ---
+    case 'http-tool': {
+      const method = config.method || 'GET';
+      const url = resolveTemplates(config.url ?? '', nodeResults);
+      if (!url) return { success: false, error: 'No URL configured for HTTP tool' };
+
+      const headers = config.headers || {};
+      const body = config.body ? resolveTemplates(
+        typeof config.body === 'string' ? config.body : JSON.stringify(config.body),
+        nodeResults
+      ) : undefined;
+
+      const { data, error } = await supabase.functions.invoke('execute-http', {
+        body: { method, url, headers, body },
+      });
+
+      if (error) return { success: false, error: error.message };
+      return {
+        success: data?.success ?? false,
+        data: { statusCode: data?.statusCode, body: data?.body, toolName: config.toolName },
+        error: data?.success ? undefined : `HTTP ${data?.statusCode}`,
+      };
+    }
+
+    // --- Code Tool (sandboxed eval) ---
+    case 'code-tool': {
+      const code = config.code ?? '';
+      try {
+        const fn = new Function('input', 'nodeResults', code);
+        const result = fn(null, nodeResults);
+        return { success: true, data: { result, toolName: config.toolName } };
+      } catch (err: any) {
+        return { success: false, error: `Code execution error: ${err.message}` };
+      }
+    }
+
+    // --- AI Agent (Gemini-powered with tool loop + memory) ---
     case 'ai-agent': {
       const systemPrompt = resolveTemplates(config.systemPrompt ?? 'You are a helpful assistant.', nodeResults);
       const userPrompt = resolveTemplates(config.userPrompt ?? 'Hello', nodeResults);
       const model = config.model ?? 'gemini-2.5-flash';
       const temperature = config.temperature ? Number(config.temperature) : 0.7;
       const maxTokens = config.maxTokens ? Number(config.maxTokens) : 4096;
+      const maxIterations = config.maxIterations ? Number(config.maxIterations) : 5;
+      const returnIntermediateSteps = config.returnIntermediateSteps ?? false;
 
-      const result = await geminiChat({
-        messages: [{ role: 'user', content: userPrompt }],
-        model,
-        temperature,
-        maxTokens,
-        systemPrompt,
-      });
+      // 1. Find connected memory node
+      const memoryConn = connections.find(c => c.to === node.id && c.toPort === 'memory');
+      const memoryNode = memoryConn ? allNodes.find(n => n.id === memoryConn.from) : null;
+      const memoryConfig = (memoryNode?.config ?? {}) as Record<string, any>;
+      const sessionId = memoryConfig.sessionId || `workflow-${node.id}-default`;
+      const windowSize = memoryConfig.windowSize ? Number(memoryConfig.windowSize) : 10;
 
-      if (result.success) {
-        return {
-          success: true,
-          data: {
-            text: result.text,
-            usage: result.usage,
-            model,
-            agentType: config.agentType ?? 'tools-agent',
-          },
-        };
+      // 2. Find connected tool nodes
+      const toolConns = connections.filter(c => c.to === node.id && c.toPort === 'tool');
+      const toolNodes = toolConns
+        .map(c => allNodes.find(n => n.id === c.from))
+        .filter(Boolean) as NodeData[];
+
+      // 3. Load memory if connected
+      let memoryMessages: { role: string; content: string }[] = [];
+      if (memoryNode) {
+        if (memoryConfig.clearOnRun) {
+          await clearMemory(sessionId);
+        }
+        memoryMessages = await loadMemory(sessionId, windowSize);
       }
-      return { success: false, error: result.error || result.message || 'Agent execution failed' };
+
+      // 4. Build tool descriptions for system prompt
+      let toolSystemAddendum = '';
+      if (toolNodes.length > 0) {
+        const toolDescriptions = toolNodes.map(tn => {
+          const tc = (tn.config ?? {}) as Record<string, any>;
+          const name = tc.toolName || tn.id;
+          const desc = tc.toolDescription || tn.title;
+          const params = tc.parametersSchema ? JSON.stringify(tc.parametersSchema) : '{}';
+          return `- ${name}: ${desc} (params: ${params})`;
+        }).join('\n');
+
+        toolSystemAddendum = `\n\nYou have access to the following tools:\n${toolDescriptions}\n\nTo call a tool, respond with exactly:\n<tool_call>tool_name({"param": "value"})</tool_call>\n\nAfter receiving the tool result, continue reasoning. When you have a final answer, respond normally without any <tool_call> tags.`;
+      }
+
+      const fullSystemPrompt = systemPrompt + toolSystemAddendum;
+
+      // 5. Agent loop
+      const messages: { role: string; content: string }[] = [
+        ...memoryMessages,
+        { role: 'user', content: userPrompt },
+      ];
+      const toolCallLogs: { tool: string; args: any; result: any; iteration: number }[] = [];
+      let finalText = '';
+      let totalUsage: Record<string, number> = {};
+      let iterations = 0;
+
+      for (let i = 0; i < maxIterations; i++) {
+        iterations++;
+        const result = await geminiChat({
+          messages,
+          model,
+          temperature,
+          maxTokens,
+          systemPrompt: fullSystemPrompt,
+        });
+
+        if (!result.success) {
+          return { success: false, error: result.error || result.message || 'Agent LLM call failed' };
+        }
+
+        if (result.usage) {
+          Object.entries(result.usage).forEach(([k, v]) => {
+            totalUsage[k] = (totalUsage[k] || 0) + (v as number);
+          });
+        }
+
+        const text = result.text || '';
+
+        // Check for tool call
+        const toolCallMatch = text.match(/<tool_call>(\w+)\(([\s\S]*?)\)<\/tool_call>/);
+        if (toolCallMatch && toolNodes.length > 0) {
+          const toolName = toolCallMatch[1];
+          let toolArgs: any = {};
+          try { toolArgs = JSON.parse(toolCallMatch[2]); } catch { toolArgs = toolCallMatch[2]; }
+
+          // Find matching tool node
+          const matchedTool = toolNodes.find(tn => {
+            const tc = (tn.config ?? {}) as Record<string, any>;
+            return (tc.toolName || tn.id) === toolName;
+          });
+
+          if (matchedTool) {
+            // Execute the tool
+            const toolResult = await executeNodeByType(matchedTool, nodeResults, allNodes, connections);
+            const toolResultData = toolResult.success ? toolResult.data : { error: toolResult.error };
+
+            toolCallLogs.push({ tool: toolName, args: toolArgs, result: toolResultData, iteration: i + 1 });
+
+            // Append assistant message and tool result
+            messages.push({ role: 'assistant', content: text });
+            messages.push({ role: 'user', content: `Tool "${toolName}" returned:\n${JSON.stringify(toolResultData, null, 2)}` });
+            continue;
+          } else {
+            // Unknown tool — treat as final answer
+            messages.push({ role: 'assistant', content: text });
+            finalText = text;
+            break;
+          }
+        } else {
+          // No tool call — final answer
+          finalText = text;
+          messages.push({ role: 'assistant', content: text });
+          break;
+        }
+      }
+
+      // 6. Save memory
+      if (memoryNode) {
+        await saveMemory(sessionId, [
+          { role: 'user', content: userPrompt },
+          { role: 'assistant', content: finalText },
+        ]);
+      }
+
+      return {
+        success: true,
+        data: {
+          text: finalText,
+          usage: totalUsage,
+          model,
+          agentType: config.agentType ?? 'tools-agent',
+          iterations,
+          toolCalls: returnIntermediateSteps ? toolCallLogs : undefined,
+          memorySessionId: memoryNode ? sessionId : undefined,
+          toolCount: toolNodes.length,
+        },
+      };
     }
 
     // --- Simulated nodes (no backend yet) ---
@@ -370,7 +521,7 @@ export function useExecution(options: UseExecutionOptions): UseExecutionReturn {
     const nodeStartTime = Date.now();
 
     try {
-      const result = await executeNodeByType(node, nodeResultsRef.current);
+      const result = await executeNodeByType(node, nodeResultsRef.current, nodes, connections);
       const duration = Date.now() - nodeStartTime;
 
       if (isCancelledRef.current) return;

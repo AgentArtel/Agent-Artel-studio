@@ -217,6 +217,37 @@ const httpToolConfigSchema: NodeConfigSchema = {
   description: 'Configure HTTP request settings',
   sections: [
     {
+      id: 'identity',
+      title: 'Tool Identity',
+      description: 'How the AI agent sees this tool',
+      fields: [
+        {
+          id: 'toolName',
+          type: 'text',
+          label: 'Tool Name',
+          placeholder: 'get_weather',
+          description: 'Short identifier the agent uses to call this tool',
+          required: true,
+        },
+        {
+          id: 'toolDescription',
+          type: 'textarea',
+          label: 'Tool Description',
+          placeholder: 'Fetches current weather data for a given city name.',
+          description: 'What this tool does — helps the agent decide when to use it',
+          required: true,
+        },
+        {
+          id: 'parametersSchema',
+          type: 'json',
+          label: 'Parameters Schema',
+          placeholder: '{"city": "string"}',
+          description: 'JSON describing expected input parameters for the agent',
+          defaultValue: {},
+        },
+      ],
+    },
+    {
       id: 'request',
       title: 'Request Settings',
       fields: [
@@ -297,6 +328,29 @@ const codeToolConfigSchema: NodeConfigSchema = {
   description: 'Configure code execution',
   sections: [
     {
+      id: 'identity',
+      title: 'Tool Identity',
+      description: 'How the AI agent sees this tool',
+      fields: [
+        {
+          id: 'toolName',
+          type: 'text',
+          label: 'Tool Name',
+          placeholder: 'calculate_sum',
+          description: 'Short identifier the agent uses to call this tool',
+          required: true,
+        },
+        {
+          id: 'toolDescription',
+          type: 'textarea',
+          label: 'Tool Description',
+          placeholder: 'Runs a JavaScript calculation and returns the result.',
+          description: 'What this tool does — helps the agent decide when to use it',
+          required: true,
+        },
+      ],
+    },
+    {
       id: 'code',
       title: 'Code Settings',
       fields: [
@@ -334,44 +388,42 @@ const codeToolConfigSchema: NodeConfigSchema = {
 const memoryConfigSchema: NodeConfigSchema = {
   nodeType: 'memory',
   title: 'Memory',
-  description: 'Configure memory storage',
+  description: 'Persist conversation history for AI agents',
   sections: [
     {
-      id: 'storage',
-      title: 'Storage Settings',
+      id: 'memory',
+      title: 'Memory Settings',
       fields: [
         {
-          id: 'storageType',
+          id: 'memoryType',
           type: 'select',
-          label: 'Storage Type',
-          defaultValue: 'postgres',
+          label: 'Memory Type',
+          defaultValue: 'window-buffer',
           options: [
-            { label: 'PostgreSQL', value: 'postgres' },
-            { label: 'Redis', value: 'redis' },
-            { label: 'MongoDB', value: 'mongodb' },
-            { label: 'SQLite', value: 'sqlite' },
-            { label: 'In-Memory', value: 'memory' },
+            { label: 'Window Buffer', value: 'window-buffer', description: 'Keeps last N messages in context' },
           ],
-        },
-        {
-          id: 'credentials',
-          type: 'credentials',
-          label: 'Database Credentials',
-          dependsOn: { field: 'storageType', value: 'postgres' },
         },
         {
           id: 'sessionId',
           type: 'text',
           label: 'Session ID',
           placeholder: 'Auto-generated if empty',
+          description: 'Groups messages by session. Leave blank for auto-generated per-workflow ID.',
         },
         {
           id: 'windowSize',
           type: 'number',
-          label: 'Memory Window Size',
+          label: 'Window Size',
           defaultValue: 10,
           validation: { min: 1, max: 100 },
-          description: 'Number of messages to keep in context',
+          description: 'Number of past messages to load into context',
+        },
+        {
+          id: 'clearOnRun',
+          type: 'boolean',
+          label: 'Clear on Run',
+          defaultValue: false,
+          description: 'Wipe memory before each execution',
         },
       ],
     },

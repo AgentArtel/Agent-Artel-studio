@@ -9,6 +9,8 @@ interface CanvasNodeProps {
   isSelected?: boolean;
   isRunning?: boolean;
   executionStatus?: 'waiting' | 'running' | 'success' | 'error' | 'skipped';
+  connectedToolCount?: number;
+  hasMemory?: boolean;
   onClick?: (e?: React.MouseEvent) => void;
   onDragStart?: (e: React.MouseEvent, nodeId: string) => void;
   onPortMouseDown?: (e: React.MouseEvent, portId: string, portType: PortType) => void;
@@ -51,6 +53,8 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
   isSelected = false,
   isRunning = false,
   executionStatus = 'waiting',
+  connectedToolCount = 0,
+  hasMemory = false,
   onClick,
   onDragStart,
   onPortMouseDown,
@@ -151,6 +155,16 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
           {(data.config as any).agentType && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-400/10 text-purple-400/80">
               {(data.config as any).agentType === 'tools-agent' ? 'Tools' : 'Chat'}
+            </span>
+          )}
+          {connectedToolCount > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-400/10 text-purple-400/80">
+              {connectedToolCount} tool{connectedToolCount > 1 ? 's' : ''}
+            </span>
+          )}
+          {hasMemory && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400/80">
+              Memory
             </span>
           )}
         </div>

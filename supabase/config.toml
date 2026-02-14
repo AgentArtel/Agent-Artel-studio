@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.gemini-vision]
 verify_jwt = false
+
+[functions.execute-http]
+verify_jwt = false
