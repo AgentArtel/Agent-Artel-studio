@@ -1,133 +1,69 @@
 
 
-# Create Studio Tables in Public Schema + Wire Real Execution Engine
+# Create a Working Image Generation Workflow
 
-## Problem
+## What We Need
 
-All dashboard/workflow/execution queries return 406 errors because the app uses `.schema('studio')` but PostgREST only exposes `public` and `game`. The execution engine currently uses mock timers with random success/failure instead of calling real Gemini edge functions.
+The execution engine and edge functions are already wired up. What's missing is a way to (1) start with a proper image-gen workflow on the canvas, and (2) see the results after execution. Here's the focused plan:
 
-## Solution
+## Changes
 
-### Part 1: Fix 406 Errors -- Create Tables in Public Schema
+### 1. Set Default Workflow to Image Generation
 
-The `studio` schema has the tables but isn't exposed via PostgREST. We'll create equivalent tables in the `public` schema and update frontend code to query from `public` directly (removing all `.schema('studio')` calls).
+**File: `src/pages/WorkflowEditorPage.tsx`**
 
-**Database Migration** -- Create 3 tables in `public`:
+Replace the hardcoded `initialNodes` and `initialConnections` with a simple two-node image generation workflow:
 
-```text
-studio_workflows
-  - id (uuid, PK, default gen_random_uuid())
-  - user_id (uuid, NOT NULL)
-  - name (text, NOT NULL)
-  - description (text, nullable)
-  - status (text, default 'draft')
-  - node_count (int, default 0)
-  - execution_count (int, default 0)
-  - last_run_at (timestamptz, nullable)
-  - nodes_data (jsonb, default '[]')
-  - connections_data (jsonb, default '[]')
-  - created_at, updated_at (timestamptz)
+- **Trigger Node** at position (150, 200): "Manual Trigger" -- acts as the start point
+- **Image Gen Node** at position (500, 200): "Image Generator" -- pre-configured with a sample prompt like "A futuristic robot in a neon-lit city" and style "vivid", marked as `isConfigured: true`
+- **One connection** from trigger output to image-gen input
 
-studio_executions
-  - id (uuid, PK)
-  - workflow_id (uuid, FK -> studio_workflows)
-  - user_id (uuid, NOT NULL)
-  - status (text, default 'pending')
-  - started_at (timestamptz)
-  - completed_at (timestamptz, nullable)
-  - duration_ms (int, nullable)
-  - node_results (jsonb, default '{}')
-  - error_message (text, nullable)
-  - created_at (timestamptz)
+This gives you a runnable workflow out of the box.
 
-studio_activity_log
-  - id (uuid, PK)
-  - user_id (uuid, NOT NULL)
-  - type (text, NOT NULL)
-  - message (text, NOT NULL)
-  - workflow_name (text, nullable)
-  - workflow_id (uuid, nullable)
-  - created_at (timestamptz)
-```
+### 2. Add an Execution Results Panel
 
-Tables are prefixed with `studio_` to avoid collision with existing `public` tables. RLS will be disabled for development (matching current approach).
+**File: `src/components/ExecutionResultsPanel.tsx`** (Create)
 
-**Frontend Changes** -- Update 3 files:
+A slide-up panel that appears after execution completes, showing per-node results:
 
-| File | Change |
-|------|--------|
-| `src/pages/Dashboard.tsx` | Replace `.schema('studio').from('workflows')` with `.from('studio_workflows')`, same for `executions` and `activity_log` |
-| `src/pages/WorkflowList.tsx` | Replace `.schema('studio').from('workflows')` with `.from('studio_workflows')` |
-| `src/pages/ExecutionHistory.tsx` | Replace `.schema('studio').from('executions')` with `.from('studio_executions')` and `.from('workflows')` with `.from('studio_workflows')` |
+- For `image-gen` nodes: renders the returned base64 image in an `<img>` tag
+- For `gemini-chat` / `gemini-vision` nodes: renders the returned text
+- For `gemini-embed` nodes: shows embedding dimensions
+- Shows execution duration, status, and any error messages
+- Has a close/dismiss button
 
-### Part 2: Real Execution Engine with Gemini Edge Functions
+### 3. Wire Results Panel into WorkflowEditorPage
 
-Replace the mock `setTimeout` + `Math.random()` logic in `useExecution.ts` with actual edge function calls based on node type.
+**File: `src/pages/WorkflowEditorPage.tsx`**
 
-**File: `src/hooks/useExecution.ts`** -- Major rewrite of `executeNextNode`:
+- Import and use `nodeResults` from the `useExecution` hook (already returned but not used)
+- Show the `ExecutionResultsPanel` when execution completes
+- Pass `nodeResults`, `nodes`, and `executionState` to the panel
 
-Currently the execution does this for every node:
-```
-setTimeout(() => {
-  const hasError = Math.random() < 0.1;  // fake 10% error rate
-  setNodeStatus(nodeId, hasError ? 'error' : 'success');
-}, 500 + Math.random() * 1000);  // fake delay
-```
+### 4. Improve Node Title Generation
 
-This will be replaced with a `executeNode` function that dispatches based on `node.type`:
+**File: `src/pages/WorkflowEditorPage.tsx`**
 
-- **`image-gen`**: Calls `generateImage({ prompt, style, agentId })` from `src/lib/generateImage.ts`
-- **`gemini-chat`**: Calls `geminiChat({ messages, model, temperature, maxTokens, systemPrompt })` from `src/lib/geminiServices.ts`
-- **`gemini-embed`**: Calls `geminiEmbed({ text, model })` from `src/lib/geminiServices.ts`
-- **`gemini-vision`**: Calls `geminiVision({ prompt, imageUrl, model })` from `src/lib/geminiServices.ts`
-- **`trigger`, `webhook`, `schedule`**: Pass through immediately (success) -- these are entry points
-- **Other node types** (`ai-agent`, `openai-chat`, `http-tool`, `code-tool`, etc.): Fall back to a simulated delay (since there's no backend for them yet), but log clearly that they're simulated
+Update `handleAddNode` to generate better default titles and subtitles per node type (e.g., "Image Generator" with subtitle "Gemini Imagen" instead of generic "Image-gen" / "New node").
 
-Each real node execution:
-1. Sets status to `running`
-2. Calls the appropriate edge function
-3. Stores the result in `nodeResults` (a new ref tracking per-node output data)
-4. Sets status to `success` or `error` based on response
-5. Passes output data downstream (available to next nodes via `nodeResults`)
+## How It Will Work
 
-The node's `config` object provides the parameters (prompt, model, etc.). The execution engine reads `node.config` to build the edge function request.
+1. Open the workflow editor -- you see a Trigger connected to an Image Generator node
+2. Click the Image Generator node to open ConfigPanel -- edit the prompt if desired
+3. Click "Test" in the bottom toolbar
+4. The trigger passes through instantly, then the image-gen node calls the `generate-image` edge function
+5. When complete, the results panel slides up showing the generated image
 
-**New capability**: Node results will be stored so downstream nodes can reference upstream output. For example, a `gemini-chat` node's text output could feed into an `image-gen` node's prompt via a simple template system.
+## Technical Notes
 
-### Part 3: Seed Data
-
-Insert a few sample rows into the new tables so the dashboard shows content immediately:
-- 2 sample workflows
-- 3 sample executions
-- 5 sample activity log entries
+- The `useExecution` hook already returns `nodeResults` -- it just needs to be destructured and passed to the UI
+- The `handleNodeUpdate` callback already persists config changes via `pushState`, so editing the prompt in ConfigPanel works
+- No database changes needed -- this is purely frontend wiring
 
 ## Files Summary
 
 | File | Action |
 |------|--------|
-| Migration SQL | Create `studio_workflows`, `studio_executions`, `studio_activity_log` tables |
-| `src/pages/Dashboard.tsx` | Modify -- remove `.schema('studio')`, use `studio_*` table names |
-| `src/pages/WorkflowList.tsx` | Modify -- same |
-| `src/pages/ExecutionHistory.tsx` | Modify -- same |
-| `src/hooks/useExecution.ts` | Major rewrite -- replace mock execution with real Gemini edge function calls |
-
-## Technical Details
-
-### Execution Engine Node Dispatch Logic
-
-```text
-switch (node.type):
-  'image-gen'     -> generateImage(config)
-  'gemini-chat'   -> geminiChat(config)
-  'gemini-embed'  -> geminiEmbed(config)
-  'gemini-vision' -> geminiVision(config)
-  'trigger' | 'webhook' | 'schedule' -> immediate pass-through
-  default         -> simulated 500-1500ms delay (placeholder)
-```
-
-### Error Handling
-
-- Edge function failures set the node to `error` status but do NOT stop the entire workflow
-- The error message is logged and stored in `nodeResults[nodeId].error`
-- If a critical upstream node fails, downstream nodes dependent on its output are marked `skipped`
+| `src/pages/WorkflowEditorPage.tsx` | Modify -- new initial nodes, wire results panel, better node titles |
+| `src/components/ExecutionResultsPanel.tsx` | Create -- displays execution output (images, text) |
 
