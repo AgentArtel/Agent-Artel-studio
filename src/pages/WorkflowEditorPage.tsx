@@ -26,6 +26,8 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { ImportN8nModal } from '@/components/ImportN8nModal';
+import type { N8nImportResult } from '@/types';
 import { Canvas, getCanvasTransform } from '@/components/canvas/Canvas';
 import { CanvasNode } from '@/components/canvas/CanvasNode';
 import { ConnectionLine } from '@/components/canvas/ConnectionLine';
@@ -147,6 +149,7 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
     redo,
     canUndo,
     canRedo,
+    reset,
   } = useUndoRedo({
     initialState: { nodes: initialNodes, connections: initialConnections },
     maxHistory: 50,
@@ -234,6 +237,29 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
   const [isNodePaletteOpen, setIsNodePaletteOpen] = useState(false);
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [workflowName, setWorkflowName] = useState('AI Agent Workflow');
+
+  // Mock credentials for import modal (will be replaced with Supabase query)
+  const availableCredentials = [
+    { id: 'cred-1', name: 'OpenAI Production', service: 'OpenAI' },
+    { id: 'cred-2', name: 'Slack Bot Token', service: 'Slack' },
+    { id: 'cred-3', name: 'GitHub PAT', service: 'GitHub' },
+    { id: 'cred-4', name: 'Stripe Test Key', service: 'Stripe' },
+  ];
+
+  // n8n import handler
+  const handleImportComplete = useCallback((result: N8nImportResult, envVars?: Record<string, string>) => {
+    reset({ nodes: result.nodes, connections: result.connections });
+    if (result.workflowName) {
+      setWorkflowName(result.workflowName);
+    }
+    if (envVars) {
+      console.log('[n8nImport] Environment variables collected:', envVars);
+    }
+    showSuccess(`Workflow imported. ${result.nodes.length} nodes, ${result.connections.length} connections.`);
+    setIsImportModalOpen(false);
+  }, [reset, showSuccess]);
 
   // ===========================================================================
   // NODE DRAG HOOK
@@ -769,10 +795,11 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
     <div className="h-screen flex flex-col bg-dark">
       {/* Header */}
       <Header
-        workflowName="AI Agent Workflow"
+        workflowName={workflowName}
         isActive={true}
         onBack={() => onNavigate?.('dashboard')}
         onSave={handleSaveWorkflow}
+        onImport={() => setIsImportModalOpen(true)}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
@@ -903,6 +930,14 @@ export const WorkflowEditorPage: React.FC<WorkflowEditorPageProps> = ({ onNaviga
             onClose={closeMenu}
           />
         )}
+
+        {/* n8n Import Modal */}
+        <ImportN8nModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onImportComplete={handleImportComplete}
+          availableCredentials={availableCredentials}
+        />
 
         {/* Toast Container */}
         <ToastContainer

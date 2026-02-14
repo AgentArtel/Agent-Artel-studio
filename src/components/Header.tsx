@@ -35,7 +35,8 @@ import {
   Settings,
   Sparkles,
   ChevronLeft,
-  Play
+  Play,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -55,6 +56,8 @@ export interface HeaderProps {
   onShare?: () => void;
   /** Callback when save button is clicked */
   onSave?: () => void;
+  /** Callback when import button is clicked (n8n import flow) */
+  onImport?: () => void;
   /** Display name of the workflow */
   workflowName?: string;
   /** Whether the workflow is currently active */
@@ -74,6 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRedo,
   onShare,
   onSave,
+  onImport,
   workflowName = 'AI Agent Workflow',
   isActive = true,
   canUndo = false,
@@ -191,6 +195,16 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Share2 className="w-4 h-4 mr-2" />
             Share
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white/70 hover:text-white hover:bg-white/5 hidden sm:flex"
+            onClick={onImport}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Import
           </Button>
 
           <Button
