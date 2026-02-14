@@ -1,35 +1,105 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { formatRelativeTime } from '@/lib/formatRelativeTime';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { WorkflowPreview } from '@/components/dashboard/WorkflowPreview';
 import { ExecutionChart } from '@/components/dashboard/ExecutionChart';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Zap, Play, CheckCircle, Clock, Plus, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
-
-const mockActivities = [
-  { id: '1', type: 'success' as const, message: 'Workflow executed successfully', workflowName: 'AI Content Generator', timestamp: '2m ago' },
-  { id: '2', type: 'execution' as const, message: 'Workflow started', workflowName: 'Customer Support Bot', timestamp: '15m ago' },
-  { id: '3', type: 'created' as const, message: 'New workflow created', workflowName: 'Email Automation', timestamp: '1h ago' },
-  { id: '4', type: 'error' as const, message: 'Execution failed', workflowName: 'Data Sync', timestamp: '2h ago' },
-  { id: '5', type: 'updated' as const, message: 'Workflow updated', workflowName: 'Slack Notifications', timestamp: '3h ago' },
-];
-
-const mockWorkflows = [
-  { id: '1', name: 'AI Content Generator', description: 'Generates blog posts from keywords', status: 'active' as const, lastRun: '2m ago', executionCount: 142 },
-  { id: '2', name: 'Customer Support Bot', description: 'Auto-replies to common questions', status: 'active' as const, lastRun: '15m ago', executionCount: 89 },
-  { id: '3', name: 'Email Automation', description: 'Sends weekly newsletters', status: 'inactive' as const, executionCount: 56 },
-  { id: '4', name: 'Data Sync', description: 'Syncs data between platforms', status: 'error' as const, lastRun: '2h ago', executionCount: 234 },
-];
-
-const chartData = [12, 19, 15, 25, 22, 30, 28, 35, 42, 38, 45, 52];
-const chartLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+  // Fetch workflows
+  const { data: workflows = [], isLoading: loadingWorkflows } = useQuery({
+    queryKey: ['studio-workflows'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).schema('studio').from('workflows').select('*').order('updated_at', { ascending: false }).limit(4);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Fetch all workflows for stats
+  const { data: allWorkflows = [] } = useQuery({
+    queryKey: ['studio-all-workflows'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).schema('studio').from('workflows').select('id, status');
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Fetch activity log
+  const { data: activities = [], isLoading: loadingActivities } = useQuery({
+    queryKey: ['studio-activity-log'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).schema('studio').from('activity_log').select('*').order('created_at', { ascending: false }).limit(10);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Fetch executions (for chart + stats)
+  const { data: executions = [], isLoading: loadingExecs } = useQuery({
+    queryKey: ['studio-executions'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).schema('studio').from('executions').select('*').order('started_at', { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Compute stats
+  const activeCount = allWorkflows.filter((w: any) => w.status === 'active').length;
+  const todayExecs = executions.filter((e: any) => {
+    const d = new Date(e.started_at);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  });
+  const successExecs = executions.filter((e: any) => e.status === 'success');
+  const successRate = executions.length > 0 ? ((successExecs.length / executions.length) * 100).toFixed(1) : '0';
+  const completedWithDuration = executions.filter((e: any) => e.duration_ms != null);
+  const avgDuration = completedWithDuration.length > 0
+    ? (completedWithDuration.reduce((sum: number, e: any) => sum + e.duration_ms, 0) / completedWithDuration.length / 1000).toFixed(1)
+    : '0';
+
+  // Map executions to chart data (group by month)
+  const monthCounts: Record<string, number> = {};
+  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  monthLabels.forEach(l => { monthCounts[l] = 0; });
+  executions.forEach((e: any) => {
+    const m = new Date(e.started_at).getMonth();
+    monthCounts[monthLabels[m]]++;
+  });
+  const chartData = monthLabels.map(l => monthCounts[l]);
+
+  // Map DB rows to component props
+  const mappedWorkflows = workflows.map((w: any) => ({
+    id: w.id,
+    name: w.name,
+    description: w.description,
+    status: w.status as 'active' | 'inactive' | 'error',
+    lastRun: formatRelativeTime(w.last_run_at),
+    executionCount: w.execution_count ?? 0,
+  }));
+
+  const mappedActivities = activities.map((a: any) => ({
+    id: a.id,
+    type: a.type as 'execution' | 'success' | 'error' | 'created' | 'updated',
+    message: a.message,
+    workflowName: a.workflow_name ?? '',
+    timestamp: formatRelativeTime(a.created_at),
+  }));
+
+  const isLoading = loadingWorkflows || loadingActivities || loadingExecs;
+
   return (
     <div className="min-h-screen bg-dark text-white p-6">
       <div className="flex items-center justify-between mb-8">
@@ -48,10 +118,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard title="Active Workflows" value="12" subtitle="3 added this month" trend="up" trendValue="+25%" icon={<Zap className="w-5 h-5" />} />
-        <StatCard title="Executions Today" value="48" subtitle="Across all workflows" trend="up" trendValue="+12%" icon={<Play className="w-5 h-5" />} />
-        <StatCard title="Success Rate" value="94.2%" subtitle="Last 30 days" trend="up" trendValue="+2.1%" icon={<CheckCircle className="w-5 h-5" />} />
-        <StatCard title="Avg Duration" value="2.4s" subtitle="Per execution" trend="down" trendValue="-0.3s" icon={<Clock className="w-5 h-5" />} />
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
+        ) : (
+          <>
+            <StatCard title="Active Workflows" value={String(activeCount)} subtitle={`${allWorkflows.length} total`} trend="up" trendValue={`${activeCount}`} icon={<Zap className="w-5 h-5" />} />
+            <StatCard title="Executions Today" value={String(todayExecs.length)} subtitle="Across all workflows" trend="up" trendValue={`${todayExecs.length}`} icon={<Play className="w-5 h-5" />} />
+            <StatCard title="Success Rate" value={`${successRate}%`} subtitle={`${executions.length} total executions`} trend="up" trendValue={`${successRate}%`} icon={<CheckCircle className="w-5 h-5" />} />
+            <StatCard title="Avg Duration" value={`${avgDuration}s`} subtitle="Per execution" trend="down" trendValue={`${avgDuration}s`} icon={<Clock className="w-5 h-5" />} />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -63,15 +139,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {mockWorkflows.map((workflow) => (
-              <WorkflowPreview key={workflow.id} {...workflow} onRun={() => toast.success(`Workflow "${workflow.name}" started`)} onEdit={() => onNavigate('editor')} />
-            ))}
+            {loadingWorkflows ? (
+              Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)
+            ) : (
+              mappedWorkflows.map((workflow) => (
+                <WorkflowPreview key={workflow.id} {...workflow} onRun={() => toast.success(`Workflow "${workflow.name}" started`)} onEdit={() => onNavigate('editor')} />
+              ))
+            )}
           </div>
         </div>
 
         <div className="space-y-6">
-          <ExecutionChart data={chartData} labels={chartLabels} />
-          <ActivityFeed activities={mockActivities} />
+          {loadingExecs ? <Skeleton className="h-52 rounded-xl" /> : <ExecutionChart data={chartData} labels={monthLabels} />}
+          {loadingActivities ? <Skeleton className="h-64 rounded-xl" /> : <ActivityFeed activities={mappedActivities} />}
         </div>
       </div>
     </div>
