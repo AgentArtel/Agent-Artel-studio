@@ -1,4 +1,30 @@
+/**
+ * ============================================================================
+ * HEADER COMPONENT
+ * ============================================================================
+ *
+ * PURPOSE:
+ * Top navigation bar for the workflow editor. Contains:
+ * - Workflow branding and name
+ * - Zoom controls (zoom in/out, reset)
+ * - Undo/redo buttons with disabled states
+ * - Status indicator (Active/Inactive)
+ * - Share and Save actions
+ * - User avatar
+ *
+ * INTEGRATION:
+ * This component receives callbacks from WorkflowEditorPage for:
+ * - Zoom actions (onZoomIn, onZoomOut, onReset)
+ * - History actions (onUndo, onRedo) - Phase 2
+ * - Workflow actions (onSave, onShare)
+ *
+ * @author Open Agent Artel Team
+ * @version 2.0.0 (Phase 2 - Added canUndo/canRedo props)
+ * ============================================================================
+ */
+
 import React from 'react';
+import { cn } from '@/lib/utils';
 import { 
   ZoomOut, 
   ZoomIn, 
@@ -13,16 +39,29 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-interface HeaderProps {
+export interface HeaderProps {
+  /** Callback when zoom in button is clicked */
   onZoomIn?: () => void;
+  /** Callback when zoom out button is clicked */
   onZoomOut?: () => void;
+  /** Callback when reset view button is clicked */
   onReset?: () => void;
+  /** Callback when undo button is clicked */
   onUndo?: () => void;
+  /** Callback when redo button is clicked */
   onRedo?: () => void;
+  /** Callback when share button is clicked */
   onShare?: () => void;
+  /** Callback when save button is clicked */
   onSave?: () => void;
+  /** Display name of the workflow */
   workflowName?: string;
+  /** Whether the workflow is currently active */
   isActive?: boolean;
+  /** Whether undo is available (Phase 2) */
+  canUndo?: boolean;
+  /** Whether redo is available (Phase 2) */
+  canRedo?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,6 +74,8 @@ export const Header: React.FC<HeaderProps> = ({
   onSave,
   workflowName = 'AI Agent Workflow',
   isActive = true,
+  canUndo = false,
+  canRedo = false,
 }) => {
   return (
     <header className="fixed top-0 left-0 right-0 h-16 z-50 glass border-b border-white/5">
@@ -58,24 +99,28 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Center - Zoom Controls */}
+        {/* Center - Zoom & History Controls */}
         <div className="flex items-center gap-1">
+          {/* Zoom Controls */}
           <div className="flex items-center bg-dark-100 rounded-lg p-1 border border-white/5">
             <button 
               className="w-8 h-8 rounded-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-all"
               onClick={onZoomOut}
+              title="Zoom Out"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
             <button 
               className="w-8 h-8 rounded-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-all"
               onClick={onReset}
+              title="Reset View"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
             <button 
               className="w-8 h-8 rounded-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-all"
               onClick={onZoomIn}
+              title="Zoom In"
             >
               <ZoomIn className="w-4 h-4" />
             </button>
@@ -83,16 +128,31 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="w-px h-6 bg-white/10 mx-2" />
 
+          {/* Undo/Redo Controls (Phase 2) */}
           <div className="flex items-center bg-dark-100 rounded-lg p-1 border border-white/5">
             <button 
-              className="w-8 h-8 rounded-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-all"
+              className={cn(
+                "w-8 h-8 rounded-md flex items-center justify-center transition-all",
+                canUndo
+                  ? "text-white/60 hover:text-white hover:bg-white/5"
+                  : "text-white/20 cursor-not-allowed"
+              )}
               onClick={onUndo}
+              disabled={!canUndo}
+              title={canUndo ? "Undo (Ctrl+Z)" : "Nothing to undo"}
             >
               <Undo2 className="w-4 h-4" />
             </button>
             <button 
-              className="w-8 h-8 rounded-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-all"
+              className={cn(
+                "w-8 h-8 rounded-md flex items-center justify-center transition-all",
+                canRedo
+                  ? "text-white/60 hover:text-white hover:bg-white/5"
+                  : "text-white/20 cursor-not-allowed"
+              )}
               onClick={onRedo}
+              disabled={!canRedo}
+              title={canRedo ? "Redo (Ctrl+Shift+Z)" : "Nothing to redo"}
             >
               <Redo2 className="w-4 h-4" />
             </button>

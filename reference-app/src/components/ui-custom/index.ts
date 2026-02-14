@@ -5,6 +5,9 @@ export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';
 export { DataTable } from './DataTable';
 export { Avatar } from './Avatar';
+export { ActivityItem } from './ActivityItem';
+export { NodeCard } from './NodeCard';
+export { StatCard } from './StatCard';
 
 // Forms
 export { FormInput } from './FormInput';
@@ -16,6 +19,6 @@ export { SidebarItem } from './SidebarItem';
 
 // Feedback
 export { Modal } from './Modal';
-export { Toast, ToastContainer } from './Toast';
+export { ToastItem, ToastContainer } from './Toast';
 export { Tooltip } from './Tooltip';
 export { LoadingSpinner, LoadingDots } from './LoadingSpinner';

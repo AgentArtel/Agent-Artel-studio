@@ -7,10 +7,10 @@ import { Credentials } from '@/pages/Credentials';
 import { Settings } from '@/pages/Settings';
 import { AgentLibrary } from '@/pages/AgentLibrary';
 import { WorkflowEditorPage } from '@/pages/WorkflowEditorPage';
-// import { ShowcasePage } from '@/pages/ShowcasePage';
+import { ShowcasePage } from '@/pages/ShowcasePage';
 import { cn } from '@/lib/utils';
 
-type Page = 'dashboard' | 'workflows' | 'executions' | 'credentials' | 'templates' | 'settings' | 'editor';
+type Page = 'dashboard' | 'workflows' | 'executions' | 'credentials' | 'templates' | 'settings' | 'editor' | 'showcase';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -32,6 +32,8 @@ function App() {
         return <Settings />;
       case 'editor':
         return <WorkflowEditorPage />;
+      case 'showcase':
+        return <ShowcasePage />;
       default:
         return <Dashboard />;
     }

@@ -2,7 +2,9 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { GridBackground } from './GridBackground';
 import { ZoomControls } from './ZoomControls';
 import { MiniMap } from './MiniMap';
+import { TempConnectionLine } from './TempConnectionLine';
 import type { NodeData, Connection } from '@/types';
+import type { CanvasTransform } from '@/lib/canvasUtils';
 
 interface CanvasProps {
   nodes: NodeData[];
@@ -12,8 +14,16 @@ interface CanvasProps {
   onNodeMove: (nodeId: string, position: { x: number; y: number }) => void;
   onConnectionStart: (nodeId: string, portId: string) => void;
   onConnectionEnd: (nodeId: string, portId: string) => void;
+  /** Temporary connection line while dragging */
+  tempConnection?: { from: { x: number; y: number }; to: { x: number; y: number } } | null;
   children: React.ReactNode;
   className?: string;
+  /** Called when mouse moves on canvas - for drag/connection updates */
+  onMouseMove?: (e: React.MouseEvent) => void;
+  /** Called when mouse up on canvas - for drag/connection end */
+  onMouseUp?: (e: React.MouseEvent) => void;
+  /** Called when mouse down on canvas - for selection box start (Phase 2) */
+  onMouseDown?: (e: React.MouseEvent) => void;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
@@ -24,23 +34,42 @@ export const Canvas: React.FC<CanvasProps> = ({
   onNodeMove: _onNodeMove,
   onConnectionStart: _onConnectionStart,
   onConnectionEnd: _onConnectionEnd,
+  tempConnection,
   children,
   className = '',
+  onMouseMove,
+  onMouseUp,
+  onMouseDown,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [transform, setTransform] = useState<CanvasTransform>({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-  // Pan handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.target === canvasRef.current) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
+  // Expose transform to parent via ref
+  useEffect(() => {
+    if (canvasRef.current) {
+      (canvasRef.current as HTMLDivElement & { transform: CanvasTransform }).transform = transform;
     }
   }, [transform]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  // Pan handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Forward to parent first for selection box (Phase 2)
+    onMouseDown?.(e);
+
+    // Only pan on left click and when clicking directly on canvas background
+    if (e.button !== 0) return;
+    if (e.target !== canvasRef.current) return;
+
+    setIsPanning(true);
+    setPanStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
+    // Deselect when clicking background
+    _onNodeSelect?.(null);
+  }, [transform, _onNodeSelect, onMouseDown]);
+
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent) => {
+    // Handle panning
     if (isPanning) {
       setTransform(prev => ({
         ...prev,
@@ -48,11 +77,18 @@ export const Canvas: React.FC<CanvasProps> = ({
         y: e.clientY - panStart.y,
       }));
     }
-  }, [isPanning, panStart]);
 
-  const handleMouseUp = useCallback(() => {
-    setIsPanning(false);
-  }, []);
+    // Forward to parent for drag/connection handling
+    onMouseMove?.(e);
+  }, [isPanning, panStart, onMouseMove]);
+
+  const handleCanvasMouseUp = useCallback((e: React.MouseEvent) => {
+    if (isPanning) {
+      setIsPanning(false);
+    }
+    // Forward to parent for drag/connection handling
+    onMouseUp?.(e);
+  }, [isPanning, onMouseUp]);
 
   // Wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -121,10 +157,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   return (
     <div 
       ref={canvasRef}
-      className={`relative w-full h-full overflow-hidden bg-dark cursor-grab active:cursor-grabbing ${className}`}
+      className={`relative w-full h-full overflow-hidden bg-dark ${isPanning ? 'cursor-grabbing' : 'cursor-grab'} ${className}`}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
+      onMouseMove={handleCanvasMouseMove}
+      onMouseUp={handleCanvasMouseUp}
       onWheel={handleWheel}
     >
       <GridBackground />
@@ -138,6 +174,11 @@ export const Canvas: React.FC<CanvasProps> = ({
         }}
       >
         {children}
+        
+        {/* Temporary connection line (drawn inside transform so it scales) */}
+        {tempConnection && (
+          <TempConnectionLine from={tempConnection.from} to={tempConnection.to} />
+        )}
       </div>
 
       {/* Zoom Controls */}
@@ -156,4 +197,10 @@ export const Canvas: React.FC<CanvasProps> = ({
       />
     </div>
   );
+};
+
+// Export transform getter for hooks
+export const getCanvasTransform = (canvasElement: HTMLElement | null): CanvasTransform => {
+  if (!canvasElement) return { x: 0, y: 0, scale: 1 };
+  return (canvasElement as HTMLDivElement & { transform: CanvasTransform }).transform || { x: 0, y: 0, scale: 1 };
 };

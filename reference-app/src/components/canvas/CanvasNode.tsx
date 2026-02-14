@@ -1,16 +1,18 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Check, Bot, MessageSquare, Database, Globe, Code2, Webhook, Sparkles } from 'lucide-react';
 import type { NodeData } from '@/types';
+import type { PortType } from '@/lib/portRegistry';
 
 interface CanvasNodeProps {
   data: NodeData;
   isSelected?: boolean;
   isRunning?: boolean;
   executionStatus?: 'waiting' | 'running' | 'success' | 'error' | 'skipped';
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   onDragStart?: (e: React.MouseEvent, nodeId: string) => void;
-  onPortClick?: (portId: string, type: 'input' | 'output') => void;
+  onPortMouseDown?: (e: React.MouseEvent, portId: string, portType: PortType) => void;
+  onPortMouseUp?: (e: React.MouseEvent, portId: string, portType: PortType) => void;
   className?: string;
 }
 
@@ -43,23 +45,33 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
   executionStatus = 'waiting',
   onClick,
   onDragStart,
-  onPortClick,
+  onPortMouseDown,
+  onPortMouseUp,
   className = '',
 }) => {
-  const [, setIsDragging] = useState(false);
-  
   const Icon = nodeIcons[data.type] || Bot;
   const iconColor = nodeColors[data.type] || 'text-white';
-  
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only start drag on left mouse button and not on ports
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest('.port-handle')) return;
+    
     e.stopPropagation();
-    setIsDragging(true);
     onDragStart?.(e, data.id);
   }, [data.id, onDragStart]);
-  
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+
+  const handlePortMouseDown = useCallback((e: React.MouseEvent, portId: string, portType: PortType) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onPortMouseDown?.(e, portId, portType);
+  }, [onPortMouseDown]);
+
+  const handlePortMouseUp = useCallback((e: React.MouseEvent, portId: string, portType: PortType) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onPortMouseUp?.(e, portId, portType);
+  }, [onPortMouseUp]);
 
   // Determine border style based on state
   const getBorderStyle = () => {
@@ -84,7 +96,6 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
         animation: 'node-appear 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       }}
       onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
       onClick={onClick}
     >
       {/* Execution status overlay */}
@@ -127,56 +138,50 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
 
       {/* Input port (top) */}
       <div className="absolute -top-2 left-1/2 -translate-x-1/2 group">
-        <div 
-          className="w-4 h-4 rounded-full bg-dark-100 border-2 border-white/30 cursor-crosshair hover:border-green hover:scale-125 hover:shadow-glow transition-all"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPortClick?.('input', 'input');
-          }}
+        <div
+          className="port-handle w-4 h-4 rounded-full bg-dark-100 border-2 border-white/30 cursor-crosshair hover:border-green hover:scale-125 hover:shadow-glow transition-all"
+          onMouseDown={(e) => handlePortMouseDown(e, 'input', 'input')}
+          onMouseUp={(e) => handlePortMouseUp(e, 'input', 'input')}
         />
-        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-white/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-white/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           Input
         </span>
       </div>
 
       {/* Output port (bottom) */}
       <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 group">
-        <div 
-          className="w-4 h-4 rounded-full bg-dark-100 border-2 border-green cursor-crosshair hover:scale-125 hover:shadow-glow transition-all"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPortClick?.('output', 'output');
-          }}
+        <div
+          className="port-handle w-4 h-4 rounded-full bg-dark-100 border-2 border-green cursor-crosshair hover:scale-125 hover:shadow-glow transition-all"
+          onMouseDown={(e) => handlePortMouseDown(e, 'output', 'output')}
+          onMouseUp={(e) => handlePortMouseUp(e, 'output', 'output')}
         />
-        <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] text-white/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] text-white/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           Output
         </span>
       </div>
 
-      {/* Side ports for specific node types */}
+      {/* Side ports for AI agents */}
       {data.type === 'ai-agent' && (
         <>
+          {/* Tool port (right) */}
           <div className="absolute top-1/2 -right-2 -translate-y-1/2 group">
-            <div 
-              className="w-3 h-3 rounded-full bg-dark-100 border-2 border-white/20 cursor-crosshair hover:border-green hover:scale-125 transition-all"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPortClick?.('tool', 'output');
-              }}
+            <div
+              className="port-handle w-3 h-3 rounded-full bg-dark-100 border-2 border-purple-400 cursor-crosshair hover:scale-125 hover:shadow-[0_0_8px_rgba(168,85,247,0.5)] transition-all"
+              onMouseDown={(e) => handlePortMouseDown(e, 'tool', 'tool')}
+              onMouseUp={(e) => handlePortMouseUp(e, 'tool', 'tool')}
             />
-            <span className="absolute top-1/2 -right-10 -translate-y-1/2 text-[9px] text-white/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="absolute top-1/2 -right-10 -translate-y-1/2 text-[9px] text-white/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               Tool
             </span>
           </div>
+          {/* Memory port (left) */}
           <div className="absolute top-1/3 -left-2 -translate-y-1/2 group">
-            <div 
-              className="w-3 h-3 rounded-full bg-dark-100 border-2 border-white/20 cursor-crosshair hover:border-green hover:scale-125 transition-all"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPortClick?.('memory', 'input');
-              }}
+            <div
+              className="port-handle w-3 h-3 rounded-full bg-dark-100 border-2 border-blue-400 cursor-crosshair hover:scale-125 hover:shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all"
+              onMouseDown={(e) => handlePortMouseDown(e, 'memory', 'memory')}
+              onMouseUp={(e) => handlePortMouseUp(e, 'memory', 'memory')}
             />
-            <span className="absolute top-1/2 -left-12 -translate-y-1/2 text-[9px] text-white/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="absolute top-1/2 -left-12 -translate-y-1/2 text-[9px] text-white/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               Memory
             </span>
           </div>
