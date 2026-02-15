@@ -56,10 +56,11 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ agentId }) => {
         .from('agent_memory')
         .select('*')
         .eq('agent_id', agentId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data || []) as MemoryRow[];
+      return ((data || []) as MemoryRow[]).reverse();
+      /* handled above */
     },
     enabled: !!agentId,
   });
