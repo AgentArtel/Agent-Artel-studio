@@ -26,6 +26,11 @@ interface NPCFormModalProps {
 
 const MODEL_OPTIONS = [
   'kimi-k2-0711-preview',
+  'kimi-k2.5',
+  'kimi-k2-0905-preview',
+  'kimi-k2-turbo-preview',
+  'kimi-k2-thinking-turbo',
+  'kimi-k2-thinking',
   'gemini-2.5-flash',
   'gemini-2.5-pro',
 ];
