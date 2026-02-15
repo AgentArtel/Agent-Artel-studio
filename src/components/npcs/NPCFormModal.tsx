@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Modal } from '@/components/ui-custom/Modal';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { gameDb } from '@/lib/gameSchema';
+import { MemoryViewer } from './MemoryViewer';
 
 interface AgentConfig {
   id: string;
@@ -168,6 +170,145 @@ export const NPCFormModal: React.FC<NPCFormModalProps> = ({
     'w-full px-4 py-2.5 bg-dark-200 border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-green/50';
   const labelCls = 'text-xs text-white/50 uppercase tracking-wider mb-1.5 block';
 
+  const renderFormFields = () => (
+    <>
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-green mb-2">Identity</legend>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Name</label>
+            <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Elder Theron" />
+          </div>
+          <div>
+            <label className={labelCls}>ID</label>
+            <input className={inputCls} value={id} onChange={(e) => !isEditing && setId(e.target.value)} readOnly={isEditing} placeholder="auto-generated" />
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>Graphic</label>
+          <select className={inputCls} value={graphic} onChange={(e) => setGraphic(e.target.value)}>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Personality (System Prompt)</label>
+          <textarea className={`${inputCls} min-h-[100px]`} value={personality} onChange={(e) => setPersonality(e.target.value)} placeholder="You are a wise village elder..." rows={4} />
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-green mb-2">Model</legend>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Idle Model</label>
+            <select className={inputCls} value={idleModel} onChange={(e) => setIdleModel(e.target.value)}>
+              {MODEL_OPTIONS.map((m) => (<option key={m} value={m}>{m}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Conversation Model</label>
+            <select className={inputCls} value={conversationModel} onChange={(e) => setConversationModel(e.target.value)}>
+              {MODEL_OPTIONS.map((m) => (<option key={m} value={m}>{m}</option>))}
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-green mb-2">Skills</legend>
+        <div className="flex flex-wrap gap-2">
+          {GAME_SKILLS.map((skill) => (
+            <label key={skill} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-200 border border-white/10 cursor-pointer hover:border-green/30 transition-colors">
+              <input type="checkbox" checked={skills.includes(skill)} onChange={() => toggleSkill(skill)} className="accent-green" />
+              <span className="text-xs text-white/70">{skill}</span>
+            </label>
+          ))}
+        </div>
+        {apiIntegrations.length > 0 && (
+          <>
+            <p className="text-[10px] text-white/40 uppercase tracking-wider mt-2">API Skills</p>
+            <div className="flex flex-wrap gap-2">
+              {apiIntegrations.map((integ) => (
+                <label key={integ.skill_name} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-200 border border-white/10 cursor-pointer hover:border-green/30 transition-colors">
+                  <input type="checkbox" checked={skills.includes(integ.skill_name)} onChange={() => toggleSkill(integ.skill_name)} className="accent-green" />
+                  <span className="text-xs text-white/70">{integ.name}</span>
+                  <span className="text-[10px] text-white/30">({integ.skill_name})</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+      </fieldset>
+
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-green mb-2">Spawn Location</legend>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className={labelCls}>Map</label>
+            <input className={inputCls} value={spawnMap} onChange={(e) => setSpawnMap(e.target.value)} placeholder="simplemap" />
+          </div>
+          <div>
+            <label className={labelCls}>X</label>
+            <input className={inputCls} type="number" value={spawnX} onChange={(e) => setSpawnX(Number(e.target.value))} />
+          </div>
+          <div>
+            <label className={labelCls}>Y</label>
+            <input className={inputCls} type="number" value={spawnY} onChange={(e) => setSpawnY(Number(e.target.value))} />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-green mb-2">Behavior</legend>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className={labelCls}>Idle Interval (ms)</label>
+            <input className={inputCls} type="number" value={idleInterval} onChange={(e) => setIdleInterval(Number(e.target.value))} />
+          </div>
+          <div>
+            <label className={labelCls}>Patrol Radius</label>
+            <input className={inputCls} type="number" value={patrolRadius} onChange={(e) => setPatrolRadius(Number(e.target.value))} />
+          </div>
+          <div className="flex items-end pb-1">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={greetOnProximity} onChange={(e) => setGreetOnProximity(e.target.checked)} className="accent-green" />
+              <span className="text-xs text-white/70">Greet on Proximity</span>
+            </label>
+          </div>
+        </div>
+      </fieldset>
+
+      {inventory.length > 0 && (
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium text-green mb-2">Inventory (auto-managed)</legend>
+          <div className="flex flex-wrap gap-2">
+            {inventory.map((token) => (
+              <span key={token} className="px-3 py-1 rounded-full bg-green/10 text-green text-xs">{token}</span>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="accent-green" />
+          <span className="text-sm text-white/70">Enabled</span>
+        </label>
+        <span className="text-xs text-white/30">(disabled NPCs don't load in the game)</span>
+      </div>
+    </>
+  );
+
+  const renderFooter = () => (
+    <div className="flex justify-end gap-3 pt-5 border-t border-white/5 mt-5">
+      <Button variant="ghost" onClick={onClose}>Cancel</Button>
+      <Button className="bg-green text-dark hover:bg-green-light" onClick={handleSubmit} disabled={!name.trim() || !id.trim()}>
+        {isEditing ? 'Save Changes' : 'Create NPC'}
+      </Button>
+    </div>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -176,154 +317,32 @@ export const NPCFormModal: React.FC<NPCFormModalProps> = ({
       description={isEditing ? 'Update this NPC\'s configuration' : 'Define a new AI NPC for the game'}
       size="xl"
     >
-      <div className="max-h-[70vh] overflow-y-auto space-y-5 pr-1">
-        {/* Identity */}
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-green mb-2">Identity</legend>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Name</label>
-              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Elder Theron" />
-            </div>
-            <div>
-              <label className={labelCls}>ID</label>
-              <input className={inputCls} value={id} onChange={(e) => !isEditing && setId(e.target.value)} readOnly={isEditing} placeholder="auto-generated" />
-            </div>
-          </div>
-          <div>
-            <label className={labelCls}>Graphic</label>
-            <select className={inputCls} value={graphic} onChange={(e) => setGraphic(e.target.value)}>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Personality (System Prompt)</label>
-            <textarea className={`${inputCls} min-h-[100px]`} value={personality} onChange={(e) => setPersonality(e.target.value)} placeholder="You are a wise village elder..." rows={4} />
-          </div>
-        </fieldset>
+      {isEditing ? (
+        <Tabs defaultValue="config" className="w-full">
+          <TabsList className="bg-dark-200 border border-white/10 mb-4">
+            <TabsTrigger value="config" className="data-[state=active]:bg-green/10 data-[state=active]:text-green">Configuration</TabsTrigger>
+            <TabsTrigger value="memory" className="data-[state=active]:bg-green/10 data-[state=active]:text-green">Memory</TabsTrigger>
+          </TabsList>
 
-        {/* Model */}
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-green mb-2">Model</legend>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Idle Model</label>
-              <select className={inputCls} value={idleModel} onChange={(e) => setIdleModel(e.target.value)}>
-                {MODEL_OPTIONS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+          <TabsContent value="config">
+            <div className="max-h-[70vh] overflow-y-auto space-y-5 pr-1">
+              {renderFormFields()}
             </div>
-            <div>
-              <label className={labelCls}>Conversation Model</label>
-              <select className={inputCls} value={conversationModel} onChange={(e) => setConversationModel(e.target.value)}>
-                {MODEL_OPTIONS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
+            {renderFooter()}
+          </TabsContent>
+
+          <TabsContent value="memory">
+            <MemoryViewer agentId={initialData!.id} />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <>
+          <div className="max-h-[70vh] overflow-y-auto space-y-5 pr-1">
+            {renderFormFields()}
           </div>
-        </fieldset>
-
-        {/* Skills */}
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-green mb-2">Skills</legend>
-          <div className="flex flex-wrap gap-2">
-            {GAME_SKILLS.map((skill) => (
-              <label key={skill} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-200 border border-white/10 cursor-pointer hover:border-green/30 transition-colors">
-                <input type="checkbox" checked={skills.includes(skill)} onChange={() => toggleSkill(skill)} className="accent-green" />
-                <span className="text-xs text-white/70">{skill}</span>
-              </label>
-            ))}
-          </div>
-          {apiIntegrations.length > 0 && (
-            <>
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mt-2">API Skills</p>
-              <div className="flex flex-wrap gap-2">
-                {apiIntegrations.map((integ) => (
-                  <label key={integ.skill_name} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-200 border border-white/10 cursor-pointer hover:border-green/30 transition-colors">
-                    <input type="checkbox" checked={skills.includes(integ.skill_name)} onChange={() => toggleSkill(integ.skill_name)} className="accent-green" />
-                    <span className="text-xs text-white/70">{integ.name}</span>
-                    <span className="text-[10px] text-white/30">({integ.skill_name})</span>
-                  </label>
-                ))}
-              </div>
-            </>
-          )}
-        </fieldset>
-
-        {/* Spawn */}
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-green mb-2">Spawn Location</legend>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={labelCls}>Map</label>
-              <input className={inputCls} value={spawnMap} onChange={(e) => setSpawnMap(e.target.value)} placeholder="simplemap" />
-            </div>
-            <div>
-              <label className={labelCls}>X</label>
-              <input className={inputCls} type="number" value={spawnX} onChange={(e) => setSpawnX(Number(e.target.value))} />
-            </div>
-            <div>
-              <label className={labelCls}>Y</label>
-              <input className={inputCls} type="number" value={spawnY} onChange={(e) => setSpawnY(Number(e.target.value))} />
-            </div>
-          </div>
-        </fieldset>
-
-        {/* Behavior */}
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-green mb-2">Behavior</legend>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={labelCls}>Idle Interval (ms)</label>
-              <input className={inputCls} type="number" value={idleInterval} onChange={(e) => setIdleInterval(Number(e.target.value))} />
-            </div>
-            <div>
-              <label className={labelCls}>Patrol Radius</label>
-              <input className={inputCls} type="number" value={patrolRadius} onChange={(e) => setPatrolRadius(Number(e.target.value))} />
-            </div>
-            <div className="flex items-end pb-1">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={greetOnProximity} onChange={(e) => setGreetOnProximity(e.target.checked)} className="accent-green" />
-                <span className="text-xs text-white/70">Greet on Proximity</span>
-              </label>
-            </div>
-          </div>
-        </fieldset>
-
-        {/* Inventory */}
-        {inventory.length > 0 && (
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-green mb-2">Inventory (auto-managed)</legend>
-            <div className="flex flex-wrap gap-2">
-              {inventory.map((token) => (
-                <span key={token} className="px-3 py-1 rounded-full bg-green/10 text-green text-xs">
-                  {token}
-                </span>
-              ))}
-            </div>
-          </fieldset>
-        )}
-
-        {/* Enabled */}
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="accent-green" />
-            <span className="text-sm text-white/70">Enabled</span>
-          </label>
-          <span className="text-xs text-white/30">(disabled NPCs don't load in the game)</span>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex justify-end gap-3 pt-5 border-t border-white/5 mt-5">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button className="bg-green text-dark hover:bg-green-light" onClick={handleSubmit} disabled={!name.trim() || !id.trim()}>
-          {isEditing ? 'Save Changes' : 'Create NPC'}
-        </Button>
-      </div>
+          {renderFooter()}
+        </>
+      )}
     </Modal>
   );
 };
