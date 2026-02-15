@@ -1,6 +1,6 @@
 # Cross-Project Status
 
-Last updated: 2026-02-14 (foundation gate added)
+Last updated: 2026-02-14 (TMX sync tasks added)
 
 ---
 
@@ -20,8 +20,10 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 > See [foundation.md](foundation.md) for the pipeline doc and verification checklist.
 > See [alignment-rules.md §10](directives/alignment-rules.md) for the directive.
 >
-> **Known blocker:** The game loads NPC configs from YAML files, not Supabase.
-> G-0 must ship before Step 3 can pass. PM runs verification, then signs off.
+> **Known blockers:**
+> 1. Game loads NPC configs from YAML, not Supabase — G-0 must ship.
+> 2. TMX-to-DB sync (G-5) must ship so full pipeline (Tiled → DB → Game) is testable.
+> PM runs verification after both, then signs off.
 
 ---
 
@@ -34,11 +36,15 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 | S-3 | Dashboard Game Stats | Lovable | Agent-Artel-studio | MERGED — needs verify & polish | [Brief](briefs/lovable/2026-02/TASK-S-3-dashboard-game-stats.md) |
 | G-0 | Load NPC configs from Supabase | Cursor | Open-RPG | **TODO — FOUNDATION BLOCKER** | Brief TBD |
 
-## Approved (Briefs Written, May Proceed)
+## Approved (May Proceed)
 
 | ID | Title | Agent | Repo | Brief |
 |----|-------|-------|------|-------|
 | G-1 | Modular Skill Plugin System | Cursor | Open-RPG | [Brief](briefs/cursor/2026-02/TASK-G-1-modular-skill-plugin.md) |
+| D-6 | Migration 012: map_entities + map_metadata | Cursor | Open-RPG | TMX sync plan approved |
+| tmx-enrich | Add seed NPCs to simplemap.tmx | Cursor | Open-RPG | TMX sync plan approved |
+| G-5 | TMX parser + sync logic + CLI | Cursor | Open-RPG | TMX sync plan approved (after D-6 + tmx-enrich) |
+| G-6 | Optional auto-sync on server start | Cursor | Open-RPG | TMX sync plan approved (after G-5) |
 
 ## Held (Foundation Gate)
 
@@ -73,9 +79,10 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 - **Studio (Lovable):** S-1, S-2, S-3 — CODE MERGED, briefs reframed as verify & polish
 - **Game (Cursor):** G-0 (Load configs from Supabase) — **FOUNDATION BLOCKER**, brief to write
 - **Game (Cursor):** G-1 (Modular Skill Plugin System) — TODO, brief ready, can run parallel with G-0
+- **Game (Cursor):** D-6 → tmx-enrich → G-5 → G-6 (TMX-to-DB sync pipeline) — plan approved
 - **DB (Orchestrator):** D-4 (Audit seed data + reconcile grants) — TODO
 
-### FOUNDATION GATE — PM verifies the pipeline after G-0
+### FOUNDATION GATE — PM verifies the pipeline after G-0 + G-5 ship
 
 ### Wave 2 — After Foundation Gate
 - **Game:** G-2 (Photographer NPC, after G-1 + foundation gate)
@@ -109,4 +116,4 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 - `game` schema: Live, 4 tables, seed data (4 NPCs, 1 integration)
 - Cross-schema grants: Applied (migration 011); Studio's overly-broad migration needs reconciliation (D-4)
 - PostgREST: `public`, `studio`, `game` exposed
-- No pending schema changes (D-5 is a design task, not a migration yet)
+- **Pending: migration 012 (map_entities + map_metadata)** — plan approved, Cursor to implement (D-6)

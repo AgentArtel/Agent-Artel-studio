@@ -10,8 +10,9 @@ Last updated: 2026-02-14 (revised: foundation gate added)
 > See [foundation.md](../../foundation.md) for the full pipeline doc and verification checklist.
 > See [alignment-rules.md §10](../../directives/alignment-rules.md) for the directive.
 >
-> **Known blocker:** The game server loads NPC configs from YAML files, not from Supabase.
-> Task G-0 (below) must be completed before Step 3 of the verification checklist can pass.
+> **Known blockers:**
+> 1. The game server loads NPC configs from YAML files, not from Supabase — G-0 must ship.
+> 2. TMX-to-DB sync (G-5) must ship so the full pipeline (Tiled → DB → Game) is testable.
 
 ---
 
@@ -23,7 +24,8 @@ Last updated: 2026-02-14 (revised: foundation gate added)
 | D-2 | Cross-schema grants (migration 011) | DONE | Game repo | Studio roles can read/write config tables, read runtime tables |
 | D-3 | Verify PostgREST exposes `game` schema | DONE | Game repo | `pgrst.db_schemas = 'public, studio, game'` |
 | D-4 | Audit seed data + reconcile grants | TODO | Orchestrator | Verify seed data visible from Studio; also reconcile Studio's overly-broad grant migration with game repo's 011 (see alignment-rules.md §9) |
-| D-5 | Plan content store schema (for G-3) | TODO | Orchestrator | New table(s) in `game` schema for NPC-generated content; design as migration 012+ when G-3 is ready |
+| D-5 | Plan content store schema (for G-3) | TODO | Orchestrator | New table(s) in `game` schema for NPC-generated content; design as migration 013+ when G-3 is ready |
+| D-6 | Migration 012: map_entities + map_metadata | TODO | Orchestrator (review) → Cursor | Two new game tables for TMX-synced entities; 011-aligned grants; orphan-behavior documented |
 
 ---
 
@@ -36,6 +38,8 @@ Last updated: 2026-02-14 (revised: foundation gate added)
 | G-2 | Photographer NPC + Gemini Image Generation | HELD (foundation gate) | Cursor | TASK-018 | [TASK-G-2-photographer-npc.md](../../briefs/cursor/2026-02/TASK-G-2-photographer-npc.md) |
 | G-3 | Content Store + Tagging | TODO | Cursor | TASK-019 | Brief TBD (depends on D-5 schema design) |
 | G-4 | Associative Recall + Social Feed | TODO | Cursor | TASK-020 | Brief TBD (depends on G-3) |
+| G-5 | TMX parser + sync logic + CLI script | TODO | Cursor | NEW | Plan approved; depends on D-6 + tmx-enrich |
+| G-6 | Optional auto-sync on server start | TODO | Cursor | NEW | Behind SYNC_TMX_ON_START env var; depends on G-5 |
 
 ---
 
@@ -59,6 +63,10 @@ D-2 (cross-schema grants) ──► S-1, S-2, S-3  (Studio needs permission to q
 D-4 (audit seed data)     ──► S-1             (verify Studio can see seed NPCs before building UI)
 
 G-0 (DB config loading)   ──► FOUNDATION GATE (game must read NPC configs from Supabase)
+D-6 (map_entities schema) ──► G-5             (tables must exist before sync can write)
+tmx-enrich (seed in TMX)  ──► G-5             (TMX needs real data for sync to test)
+G-5 (TMX sync)            ──► G-6             (auto-sync needs sync logic)
+G-5 (TMX sync)            ──► FOUNDATION GATE (full pipeline: TMX → DB → Game)
 FOUNDATION GATE           ──► G-2, S-4, S-5, G-3, G-4  (all Wave 2+ work)
 
 G-1 (skill plugins)       ──► G-2             (Photographer NPC uses the plugin architecture)
@@ -78,8 +86,14 @@ S-1 (NPC Builder)         ──► S-4             (Memory Viewer is a tab insi
 - **G-0** — Load NPC configs from Supabase (**FOUNDATION BLOCKER**)
 - **G-1** — Modular Skill Plugin System (internal architecture, no pipeline dependency)
 - **D-4** — Audit seed data + reconcile grants
+- **D-6** — Migration 012: map_entities + map_metadata (no code deps)
+- **tmx-enrich** — Add seed NPCs to simplemap.tmx (no code deps)
 
-**After FOUNDATION GATE passes (G-0 done + PM verification):**
+**After D-6 + tmx-enrich:**
+- **G-5** — TMX parser + sync logic + CLI
+- **G-6** — Optional auto-sync on server start (after G-5)
+
+**After FOUNDATION GATE passes (G-0 + G-5 done + PM verification):**
 - **G-2** — Photographer NPC (also needs G-1)
 - **S-4** — NPC Memory Viewer (also needs S-1 merged, which it is)
 
@@ -102,9 +116,13 @@ S-1 (NPC Builder)         ──► S-4             (Memory Viewer is a tab insi
 | Studio | S-1 (NPC Builder), S-2 (Integrations), S-3 (Dashboard stats) | MERGED — briefs reframed as verify & polish |
 | Game | G-0 (Load configs from Supabase) | **TODO — FOUNDATION BLOCKER** |
 | Game | G-1 (Modular Skill Plugins) | TODO — brief ready, can run parallel with G-0 |
+| Game | tmx-enrich (Add seed NPCs to simplemap.tmx) | TODO — no deps |
+| Game | G-5 (TMX parser + sync + CLI) | TODO — after D-6 + tmx-enrich |
+| Game | G-6 (Optional auto-sync on server start) | TODO — after G-5 |
 | DB | D-4 (Audit seed data + reconcile grants) | TODO |
+| DB | D-6 (Migration 012: map_entities + map_metadata) | TODO — plan approved |
 
-### FOUNDATION GATE — PM verifies pipeline after G-0 ships
+### FOUNDATION GATE — PM verifies pipeline after G-0 + G-5 ship
 
 ### Wave 2 (after foundation gate passes)
 | Track | Tasks | Status |
@@ -137,3 +155,6 @@ S-1 (NPC Builder)         ──► S-4             (Memory Viewer is a tab insi
 | S-5 | TBD (after G-4) | NOT YET |
 | D-4 | Inline (verification, not a code task) | N/A |
 | D-5 | TBD (schema design brief) | NOT YET |
+| D-6 | Migration reviewed in TMX-to-DB sync plan | PLAN APPROVED |
+| G-5 | Covered by TMX-to-DB sync plan | PLAN APPROVED |
+| G-6 | Covered by TMX-to-DB sync plan | PLAN APPROVED |
