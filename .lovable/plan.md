@@ -1,46 +1,40 @@
 
-# Add AI Map Agent Page
+
+# Add Game Scripts Placeholder Page
 
 ## Overview
-Add a new "AI Map Agent" page to the sidebar and routing. This is a placeholder page that documents the vision for a programmatic map editor / map builder tool. The page will have a clear description of what we want to build here so we can circle back later.
+Add a new "Game Scripts" page to the sidebar as a reminder and vision document for using the workflow builder to create scripted NPC events, cannon events, scripted dialogue, branching dialogue options, and other game scripting use cases.
 
 ## Changes
 
-### 1. Create `src/pages/MapAgent.tsx`
-A new placeholder page following the same pattern as other pages (accepts `onNavigate` prop). It will include:
-- A header with a Map icon and "AI Map Agent" title
-- A descriptive card explaining the planned functionality:
-  - Programmatic map editing via AI commands
-  - Map builder / visual map editor
-  - Integration with game world data
-  - Terrain, object placement, NPC spawn point management
-- A "Coming Soon" badge to indicate this is a future feature
+### 1. Create `src/pages/GameScripts.tsx`
+A placeholder page (same pattern as `MapAgent.tsx`) that documents the vision:
+- Header with a `ScrollText` icon and "Game Scripts" title, plus a "Coming Soon" badge
+- Vision cards covering:
+  - **Scripted NPC Events** -- Use workflow nodes to define triggered NPC behaviors (e.g. boss spawns, quest sequences, patrol changes)
+  - **Scripted Dialogue** -- Build branching dialogue trees as workflows with condition nodes for player choices
+  - **Cannon Events** -- Orchestrate timed or triggered world events (weather changes, sieges, spawns) as reusable workflow templates
+  - **Dialogue Options & Branching** -- Model player choice trees with conditional paths, variable tracking, and outcome nodes
+- A note section explaining that the existing Workflow Editor canvas is the intended runtime for these scripts, so no new editor is needed -- just specialized node types and templates
 
 ### 2. Update `src/components/ui-custom/Sidebar.tsx`
-Add a new nav item for the Map Agent page:
-- id: `'map-agent'`
-- label: `'AI Map Agent'`
-- icon: `Map` (from lucide-react)
-- Placed after "NPCs" and before "Integrations" in the nav list
+- Import `ScrollText` from lucide-react
+- Add nav item `{ id: 'game-scripts', label: 'Game Scripts', icon: ScrollText }` placed after "AI Map Agent" and before "Integrations"
 
 ### 3. Update `src/App.tsx`
-- Add `'map-agent'` to the `Page` type union
-- Import the new `MapAgent` component
-- Add a case in `renderPage()` for `'map-agent'`
+- Add `'game-scripts'` to the `Page` type union
+- Import the `GameScripts` component
+- Add a case in `renderPage()` for `'game-scripts'`
 
 ## Technical Details
 
-The page component will follow the exact same structure as `NPCs.tsx` and `Integrations.tsx`:
-- Accepts `{ onNavigate: (page: string) => void }` props
-- Uses the same layout padding (`p-6 md:p-8`)
-- Dark theme styling consistent with the rest of the app
-
-No database tables or queries are needed yet -- this is purely a UI placeholder with documentation of intent.
-
-## Files Summary
+No database or backend changes. This is a UI-only placeholder following the exact same structure as `MapAgent.tsx`:
+- Props: `{ onNavigate: (page: string) => void }`
+- Layout: `p-6 md:p-8`, dark theme, card grid
 
 | File | Action |
 |------|--------|
-| `src/pages/MapAgent.tsx` | Create -- placeholder page with vision notes |
-| `src/components/ui-custom/Sidebar.tsx` | Modify -- add Map Agent nav item |
-| `src/App.tsx` | Modify -- add routing for map-agent page |
+| `src/pages/GameScripts.tsx` | Create |
+| `src/components/ui-custom/Sidebar.tsx` | Modify -- add nav item |
+| `src/App.tsx` | Modify -- add route |
+
