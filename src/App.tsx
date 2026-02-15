@@ -15,11 +15,12 @@ import { ShowcasePage } from '@/pages/ShowcasePage';
 import { NpcBuilder } from '@/pages/NPCs';
 import { Integrations } from '@/pages/Integrations';
 import { MapAgent } from '@/pages/MapAgent';
+import { GameScripts } from '@/pages/GameScripts';
 import { cn } from '@/lib/utils';
 
 const queryClient = new QueryClient();
 
-type Page = 'dashboard' | 'workflows' | 'npcs' | 'map-agent' | 'integrations' | 'executions' | 'credentials' | 'templates' | 'settings' | 'editor' | 'showcase';
+type Page = 'dashboard' | 'workflows' | 'npcs' | 'map-agent' | 'game-scripts' | 'integrations' | 'executions' | 'credentials' | 'templates' | 'settings' | 'editor' | 'showcase';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -43,6 +44,7 @@ const App = () => {
       case 'workflows': return <WorkflowList onNavigate={onNavigate} />;
       case 'npcs': return <NpcBuilder onNavigate={onNavigate} />;
       case 'map-agent': return <MapAgent onNavigate={onNavigate} />;
+      case 'game-scripts': return <GameScripts onNavigate={onNavigate} />;
       case 'integrations': return <Integrations onNavigate={onNavigate} />;
       case 'executions': return <ExecutionHistory onNavigate={onNavigate} />;
       case 'credentials': return <Credentials onNavigate={onNavigate} />;
