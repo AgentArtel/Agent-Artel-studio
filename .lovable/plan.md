@@ -1,68 +1,46 @@
 
+# Add AI Map Agent Page
 
-# Fix Game Schema TypeScript Errors
-
-## Problem
-The `Database` type (auto-generated, cannot be edited) only defines `"public"` as a valid schema key. Calling `supabase.schema('game')` in `gameSchema.ts` produces:
-```
-TS2345: Argument of type '"game"' is not assignable to parameter of type '"public"'
-```
-
-## Solution
-Create a `GameDatabase` type that extends `Database` with a `game` schema entry, then use it as the generic parameter for `createClient`. This makes `.schema('game')` fully type-safe without touching the auto-generated types file.
+## Overview
+Add a new "AI Map Agent" page to the sidebar and routing. This is a placeholder page that documents the vision for a programmatic map editor / map builder tool. The page will have a clear description of what we want to build here so we can circle back later.
 
 ## Changes
 
-### 1. Create `src/integrations/supabase/game-types.ts`
+### 1. Create `src/pages/MapAgent.tsx`
+A new placeholder page following the same pattern as other pages (accepts `onNavigate` prop). It will include:
+- A header with a Map icon and "AI Map Agent" title
+- A descriptive card explaining the planned functionality:
+  - Programmatic map editing via AI commands
+  - Map builder / visual map editor
+  - Integration with game world data
+  - Terrain, object placement, NPC spawn point management
+- A "Coming Soon" badge to indicate this is a future feature
 
-Defines `GameDatabase` by extending `Database` with a `game` key that reuses the same table definitions already in `public` (since the column shapes are identical):
+### 2. Update `src/components/ui-custom/Sidebar.tsx`
+Add a new nav item for the Map Agent page:
+- id: `'map-agent'`
+- label: `'AI Map Agent'`
+- icon: `Map` (from lucide-react)
+- Placed after "NPCs" and before "Integrations" in the nav list
 
-```typescript
-import type { Database } from './types';
+### 3. Update `src/App.tsx`
+- Add `'map-agent'` to the `Page` type union
+- Import the new `MapAgent` component
+- Add a case in `renderPage()` for `'map-agent'`
 
-export type GameDatabase = Database & {
-  game: {
-    Tables: {
-      agent_configs: Database['public']['Tables']['agent_configs'];
-      api_integrations: Database['public']['Tables']['api_integrations'];
-      agent_memory: Database['public']['Tables']['agent_memory'];
-      player_state: Database['public']['Tables']['player_state'];
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
-  };
-};
-```
+## Technical Details
 
-### 2. Modify `src/integrations/supabase/client.ts`
+The page component will follow the exact same structure as `NPCs.tsx` and `Integrations.tsx`:
+- Accepts `{ onNavigate: (page: string) => void }` props
+- Uses the same layout padding (`p-6 md:p-8`)
+- Dark theme styling consistent with the rest of the app
 
-Change the generic from `Database` to `GameDatabase`:
-
-```typescript
-import type { GameDatabase } from './game-types';
-
-export const supabase = createClient<GameDatabase>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { ... });
-```
-
-This is the only runtime-adjacent change. Every call to `supabase.schema('game')` across the entire app (NPCs.tsx, Integrations.tsx, Dashboard stats, gameSchema.ts) becomes valid TypeScript immediately.
-
-### 3. No changes to any other files
-
-- `src/integrations/supabase/types.ts` -- untouched (auto-generated)
-- `src/lib/gameSchema.ts` -- untouched (already correct)
-- `src/pages/NPCs.tsx` -- untouched (already uses `gameDb()`)
-- `src/pages/Integrations.tsx` -- untouched (already uses `gameDb()`)
-
-## Note on the Edge Function Error
-
-The other build error (`Could not find 'npm:@google/genai'` in `gemini-chat/index.ts`) is a pre-existing Deno dependency issue unrelated to this merge. It can be addressed separately.
+No database tables or queries are needed yet -- this is purely a UI placeholder with documentation of intent.
 
 ## Files Summary
 
 | File | Action |
 |------|--------|
-| `src/integrations/supabase/game-types.ts` | Create |
-| `src/integrations/supabase/client.ts` | Modify (swap Database for GameDatabase generic) |
-
+| `src/pages/MapAgent.tsx` | Create -- placeholder page with vision notes |
+| `src/components/ui-custom/Sidebar.tsx` | Modify -- add Map Agent nav item |
+| `src/App.tsx` | Modify -- add routing for map-agent page |
