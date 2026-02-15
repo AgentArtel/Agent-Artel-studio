@@ -14,12 +14,14 @@
 | S-3 | Dashboard Game Stats | **MERGED** — verify & polish | [Brief](../../briefs/lovable/2026-02/TASK-S-3-dashboard-game-stats.md) |
 | S-4 | NPC Memory Viewer | TODO — unblocked, brief ready | [Brief](../../briefs/lovable/2026-02/TASK-S-4-npc-memory-viewer.md) |
 | S-5 | Lovable Feed Integration | TODO | Brief TBD (depends on game social feed) |
+| S-6 | Map Entity Browser | TODO | Browse `game.map_entities` per map, link ai-npc rows to NPC Builder; depends on D-6 |
 
 ## Order
 
 1. **S-1, S-2, S-3** are MERGED — briefs now say "verify, test, polish" (not build from scratch)
 2. **S-4** is unblocked (S-1 merged) — NPC Memory Viewer is a tab inside the NPC detail view
-3. **S-5** after game finishes G-4 — social feed UI needs game data to render
+3. **S-6** after D-6 ships — Map Entity Browser reads `game.map_entities`, links ai-npc rows to NPC Builder for full config
+4. **S-5** after game finishes G-4 — social feed UI needs game data to render
 
 ## What's Already Built
 

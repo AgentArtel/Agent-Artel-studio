@@ -1,6 +1,6 @@
 # Cross-Project Status
 
-Last updated: 2026-02-14 (TMX sync tasks added)
+Last updated: 2026-02-14 (G-7, G-8, S-6 builder persistence tasks added)
 
 ---
 
@@ -68,6 +68,9 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 | G-3 | Content Store + Tagging | Cursor | D-5, G-2, foundation gate |
 | G-4 | Associative Recall + Social Feed | Cursor | G-3 |
 | S-5 | Lovable Feed Integration | Lovable | G-4 |
+| S-6 | Map Entity Browser | Lovable | D-6 |
+| G-7 | In-game builder save-on-place | Cursor | D-6, G-0 |
+| G-8 | In-game event config form | Cursor | G-7 |
 | D-4 | Audit seed data + reconcile grants | Orchestrator | — |
 | D-5 | Content store schema design | Orchestrator | — |
 
@@ -80,6 +83,7 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 - **Game (Cursor):** G-0 (Load configs from Supabase) — **FOUNDATION BLOCKER**, brief to write
 - **Game (Cursor):** G-1 (Modular Skill Plugin System) — TODO, brief ready, can run parallel with G-0
 - **Game (Cursor):** D-6 → tmx-enrich → G-5 → G-6 (TMX-to-DB sync pipeline) — plan approved
+- **Game (Cursor):** G-7 → G-8 (In-game builder persistence + config form) — after D-6 + G-0, briefs to write
 - **DB (Orchestrator):** D-4 (Audit seed data + reconcile grants) — TODO
 
 ### FOUNDATION GATE — PM verifies the pipeline after G-0 + G-5 ship
@@ -87,6 +91,7 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 ### Wave 2 — After Foundation Gate
 - **Game:** G-2 (Photographer NPC, after G-1 + foundation gate)
 - **Studio:** S-4 (Memory Viewer, after foundation gate)
+- **Studio:** S-6 (Map Entity Browser, after D-6 — can start pre-gate)
 - **DB:** D-5 (Content store schema design)
 
 ### Wave 3 — After Wave 2

@@ -1,6 +1,6 @@
 # Master Backlog — 2026-02 Studio + Game Alignment
 
-Last updated: 2026-02-14 (revised: foundation gate added)
+Last updated: 2026-02-14 (revised: G-7, G-8, S-6 builder persistence tasks added)
 
 ---
 
@@ -40,6 +40,8 @@ Last updated: 2026-02-14 (revised: foundation gate added)
 | G-4 | Associative Recall + Social Feed | TODO | Cursor | TASK-020 | Brief TBD (depends on G-3) |
 | G-5 | TMX parser + sync logic + CLI script | TODO | Cursor | NEW | Plan approved; depends on D-6 + tmx-enrich |
 | G-6 | Optional auto-sync on server start | TODO | Cursor | NEW | Behind SYNC_TMX_ON_START env var; depends on G-5 |
+| G-7 | In-game builder save-on-place persistence | TODO | Cursor | NEW | Save every placement to `game.map_entities` + skeleton `agent_configs`; depends on D-6 + G-0 |
+| G-8 | In-game event config form | TODO | Cursor | NEW | Post-placement Vue form: type, name, role, sprite; depends on G-7 |
 
 ---
 
@@ -52,6 +54,7 @@ Last updated: 2026-02-14 (revised: foundation gate added)
 | S-3 | Dashboard Game Stats | MERGED — verify & polish | Lovable | [TASK-S-3-dashboard-game-stats.md](../../briefs/lovable/2026-02/TASK-S-3-dashboard-game-stats.md) |
 | S-4 | NPC Memory Viewer | TODO | Lovable | [TASK-S-4-npc-memory-viewer.md](../../briefs/lovable/2026-02/TASK-S-4-npc-memory-viewer.md) |
 | S-5 | Lovable Feed Integration (social feed UI) | TODO | Lovable | TASK-021; Brief TBD (depends on G-4) |
+| S-6 | Studio Map Entity Browser | TODO | Lovable | Browse `game.map_entities` per map, link ai-npc rows to NPC Builder; depends on D-6 |
 
 ---
 
@@ -77,6 +80,11 @@ G-4 (social feed)         ──► S-5             (Lovable feed UI renders gam
 D-5 (content store schema)──► G-3             (schema design must precede implementation)
 
 S-1 (NPC Builder)         ──► S-4             (Memory Viewer is a tab inside the NPC detail view)
+
+D-6 (map_entities schema) ──► G-7             (builder writes to map_entities — table must exist)
+G-0 (DB config loading)   ──► G-7             (builder creates skeleton agent_configs — runtime must read from DB)
+G-7 (builder persistence) ──► G-8             (config form fires after placement is persisted)
+D-6 (map_entities schema) ──► S-6             (Studio reads map_entities — table must exist)
 ```
 
 ### Dependency summary — what can start now
@@ -92,6 +100,11 @@ S-1 (NPC Builder)         ──► S-4             (Memory Viewer is a tab insi
 **After D-6 + tmx-enrich:**
 - **G-5** — TMX parser + sync logic + CLI
 - **G-6** — Optional auto-sync on server start (after G-5)
+
+**After D-6 + G-0:**
+- **G-7** — In-game builder save-on-place persistence
+- **G-8** — In-game event config form (after G-7)
+- **S-6** — Studio map entity browser (after D-6 only)
 
 **After FOUNDATION GATE passes (G-0 + G-5 done + PM verification):**
 - **G-2** — Photographer NPC (also needs G-1)
@@ -119,6 +132,8 @@ S-1 (NPC Builder)         ──► S-4             (Memory Viewer is a tab insi
 | Game | tmx-enrich (Add seed NPCs to simplemap.tmx) | TODO — no deps |
 | Game | G-5 (TMX parser + sync + CLI) | TODO — after D-6 + tmx-enrich |
 | Game | G-6 (Optional auto-sync on server start) | TODO — after G-5 |
+| Game | G-7 (In-game builder save-on-place persistence) | TODO — after D-6 + G-0 |
+| Game | G-8 (In-game event config form) | TODO — after G-7 |
 | DB | D-4 (Audit seed data + reconcile grants) | TODO |
 | DB | D-6 (Migration 012: map_entities + map_metadata) | TODO — plan approved |
 
@@ -129,6 +144,7 @@ S-1 (NPC Builder)         ──► S-4             (Memory Viewer is a tab insi
 |-------|-------|--------|
 | Game | G-2 (Photographer NPC + Gemini) | HELD — needs G-1 + foundation gate |
 | Studio | S-4 (NPC Memory Viewer) | HELD — needs foundation gate |
+| Studio | S-6 (Map Entity Browser) | TODO — after D-6 (can start pre-gate) |
 | DB | D-5 (Design content store schema) | TODO |
 
 ### Wave 3 (after Wave 2)
@@ -153,6 +169,9 @@ S-1 (NPC Builder)         ──► S-4             (Memory Viewer is a tab insi
 | S-3 | `briefs/lovable/2026-02/TASK-S-3-dashboard-game-stats.md` | REWRITTEN — verify & polish (code merged) |
 | S-4 | `briefs/lovable/2026-02/TASK-S-4-npc-memory-viewer.md` | WRITTEN |
 | S-5 | TBD (after G-4) | NOT YET |
+| S-6 | `briefs/lovable/2026-02/TASK-S-6-map-entity-browser.md` | TO WRITE |
+| G-7 | `briefs/cursor/2026-02/TASK-G-7-builder-persistence.md` | TO WRITE |
+| G-8 | `briefs/cursor/2026-02/TASK-G-8-event-config-form.md` | TO WRITE |
 | D-4 | Inline (verification, not a code task) | N/A |
 | D-5 | TBD (schema design brief) | NOT YET |
 | D-6 | Migration reviewed in TMX-to-DB sync plan | PLAN APPROVED |
