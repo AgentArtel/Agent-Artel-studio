@@ -14,7 +14,8 @@ import {
   LayoutGrid,
   Users,
   Puzzle,
-  Map
+  Map,
+  ScrollText
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +31,7 @@ const navItems = [
   { id: 'workflows', label: 'Workflows', icon: Workflow },
   { id: 'npcs', label: 'NPCs', icon: Users },
   { id: 'map-agent', label: 'AI Map Agent', icon: Map },
+  { id: 'game-scripts', label: 'Game Scripts', icon: ScrollText },
   { id: 'integrations', label: 'Integrations', icon: Puzzle },
   { id: 'editor', label: 'Workflow Editor', icon: Edit3 },
   { id: 'executions', label: 'Executions', icon: PlayCircle },
