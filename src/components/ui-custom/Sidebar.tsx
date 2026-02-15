@@ -13,7 +13,8 @@ import {
   Edit3,
   LayoutGrid,
   Users,
-  Puzzle
+  Puzzle,
+  Map
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -28,6 +29,7 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'workflows', label: 'Workflows', icon: Workflow },
   { id: 'npcs', label: 'NPCs', icon: Users },
+  { id: 'map-agent', label: 'AI Map Agent', icon: Map },
   { id: 'integrations', label: 'Integrations', icon: Puzzle },
   { id: 'editor', label: 'Workflow Editor', icon: Edit3 },
   { id: 'executions', label: 'Executions', icon: PlayCircle },
