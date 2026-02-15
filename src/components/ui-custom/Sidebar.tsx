@@ -15,7 +15,8 @@ import {
   Users,
   Puzzle,
   Map,
-  ScrollText
+  ScrollText,
+  ClipboardList
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -32,6 +33,7 @@ const navItems = [
   { id: 'npcs', label: 'NPCs', icon: Users },
   { id: 'map-agent', label: 'AI Map Agent', icon: Map },
   { id: 'game-scripts', label: 'Game Scripts', icon: ScrollText },
+  { id: 'player-sessions', label: 'Player Sessions', icon: ClipboardList },
   { id: 'integrations', label: 'Integrations', icon: Puzzle },
   { id: 'editor', label: 'Workflow Editor', icon: Edit3 },
   { id: 'executions', label: 'Executions', icon: PlayCircle },
