@@ -1,6 +1,10 @@
 # Master Backlog — 2026-02 Studio + Game Alignment
 
-Last updated: 2026-02-15 (D-5 content store schema DONE; migration 013 designed)
+Last updated: 2026-02-15 (Direction shift: OpenClaw brain/body split; Wave 4 added)
+
+> **Direction Shift (2026-02-15):** Architecture pivoting from monolithic in-process agents to brain/body split with OpenClaw.
+> NPCs become OpenClaw agents (brain) piloting RPGJS entities (body). Wave 4 (OC-1 through OC-5) runs in parallel with Wave 3.
+> See [direction-shift brief](../../briefs/orchestrator/2026-02/direction-shift-openclaw-integration.md) for full architecture.
 
 ---
 
@@ -58,6 +62,31 @@ Last updated: 2026-02-15 (D-5 content store schema DONE; migration 013 designed)
 
 ---
 
+## OpenClaw Integration Tasks (OC-)
+
+> **Wave 4 — parallel with Wave 3, zero shared dependencies.**
+> Brain-side OpenClaw integration while body-side content pipeline continues.
+
+| ID | Title | Status | Owner | Brief |
+|----|-------|--------|-------|-------|
+| OC-1 | BYOC Setup (install OpenClaw, connect Kimi Claw) | TODO | Human/Ops | [Brief](../../briefs/orchestrator/2026-02/TASK-OC-1-byoc-setup.md) |
+| OC-2 | Webhook Bridge (WebhookBridge.ts implementing IAgentRunner) | TODO | Cursor | [Brief](../../briefs/cursor/2026-02/TASK-OC-2-webhook-bridge.md) |
+| OC-3 | Custom SKILL.md Files (6 game skill definitions) | TODO | Cursor | [Brief](../../briefs/cursor/2026-02/TASK-OC-3-skill-md-files.md) |
+| OC-4 | NPC-Agent Mapping (migration 014 + dual-mode registration) | TODO | Cursor | [Brief](../../briefs/cursor/2026-02/TASK-OC-4-npc-agent-mapping.md) |
+| OC-5 | Studio OpenClaw Integration (mode toggle, dashboard status) | TODO | Lovable | [Brief](../../briefs/lovable/2026-02/TASK-OC-5-studio-openclaw-integration.md) |
+
+### Deprioritized Studio Features (replaced by Kimi Claw)
+
+| Feature | Page | Replacement |
+|---------|------|-------------|
+| Workflow Editor Canvas | WorkflowEditorPage.tsx | Kimi Claw agent config UI |
+| Workflow List | WorkflowList.tsx | Kimi Claw agent list |
+| Credentials | Credentials.tsx | OpenClaw manages secrets |
+| Execution History | ExecutionHistory.tsx | Kimi Claw execution logs |
+| Agent Library | AgentLibrary.tsx | ClawHub skill marketplace |
+
+---
+
 ## Dependencies
 
 ```
@@ -85,7 +114,15 @@ D-6 (map_entities schema) ──► G-7             (builder writes to map_entit
 G-0 (DB config loading)   ──► G-7             (builder creates skeleton agent_configs — runtime must read from DB)
 G-7 (builder persistence) ──► G-8             (config form fires after placement is persisted)
 D-6 (map_entities schema) ──► S-6             (Studio reads map_entities — table must exist)
+
+OC-1 (BYOC Setup)         ──► OC-2            (need OpenClaw running to test bridge)
+OC-1 (BYOC Setup)         ──► OC-3            (need OpenClaw running to test skills)
+OC-2 (Webhook Bridge)     ──► OC-4            (bridge must exist before config-driven mode switch)
+OC-3 (SKILL.md Files)     ──► OC-4            (skills must be installed before agent mapping)
+OC-4 (NPC-Agent Mapping)  ──► OC-5            (Studio needs migration 014 columns)
 ```
+
+> **Wave 3 and Wave 4 share ZERO dependencies.** They can execute fully in parallel.
 
 ### Dependency summary — what can start now
 
@@ -147,11 +184,22 @@ D-6 (map_entities schema) ──► S-6             (Studio reads map_entities �
 | Studio | S-6 (Map Entity Browser) | TODO — after D-6 (can start pre-gate) |
 | DB | D-5 (Content store schema) | **DONE** — migration 013 ready |
 
-### Wave 3 — UNBLOCKED (D-5 done, G-2 done)
+### Wave 3 — UNBLOCKED (D-5 done, G-2 done) — body-side content pipeline
 | Track | Tasks |
 |-------|-------|
 | Game | G-3 (Content Store — apply migration 013 + ContentStore.ts), then G-4 (Social Feed) |
 | Studio | S-5 (Lovable Feed Integration, after G-4) |
+
+### Wave 4 — OpenClaw Integration (parallel with Wave 3) — brain-side
+| Track | Tasks |
+|-------|-------|
+| Ops | OC-1 (BYOC Setup — install OpenClaw, connect Kimi Claw) |
+| Game | OC-2 (Webhook Bridge) + OC-3 (SKILL.md Files) — after OC-1 |
+| Game | OC-4 (Config Schema + Migration 014) — after OC-2 + OC-3 |
+| Studio | OC-5 (OpenClaw UI Integration) — after OC-4 |
+
+> Wave 3 and Wave 4 are orthogonal. G-3/G-4/S-5 are body-side content pipeline.
+> OC-1 through OC-5 are brain-side OpenClaw integration. Zero shared dependencies.
 
 ---
 
@@ -178,3 +226,9 @@ D-6 (map_entities schema) ──► S-6             (Studio reads map_entities �
 | tmx-enrich | `briefs/cursor/2026-02/TASK-tmx-enrich-seed-npcs-in-tmx.md` | WRITTEN |
 | G-5 | `briefs/cursor/2026-02/TASK-G-5-tmx-parser-sync-cli.md` | WRITTEN |
 | G-6 | `briefs/cursor/2026-02/TASK-G-6-auto-sync-on-server-start.md` | WRITTEN |
+| OC-1 | `briefs/orchestrator/2026-02/TASK-OC-1-byoc-setup.md` | WRITTEN |
+| OC-2 | `briefs/cursor/2026-02/TASK-OC-2-webhook-bridge.md` | WRITTEN |
+| OC-3 | `briefs/cursor/2026-02/TASK-OC-3-skill-md-files.md` | WRITTEN |
+| OC-4 | `briefs/cursor/2026-02/TASK-OC-4-npc-agent-mapping.md` | WRITTEN |
+| OC-5 | `briefs/lovable/2026-02/TASK-OC-5-studio-openclaw-integration.md` | WRITTEN |
+| — | `briefs/orchestrator/2026-02/direction-shift-openclaw-integration.md` | **MASTER BRIEF** |

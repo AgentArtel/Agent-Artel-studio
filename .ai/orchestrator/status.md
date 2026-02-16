@@ -1,6 +1,15 @@
 # Cross-Project Status
 
-Last updated: 2026-02-15 (D-5 content store schema DONE; migration 013 designed)
+Last updated: 2026-02-15 (Direction shift: OpenClaw brain/body split; Wave 4 added)
+
+---
+
+## Direction Shift: OpenClaw Integration
+
+**Decision date:** 2026-02-15
+**Decision:** Shift from monolithic in-process agent system to brain/body split with OpenClaw.
+**Brief:** [direction-shift-openclaw-integration.md](briefs/orchestrator/2026-02/direction-shift-openclaw-integration.md)
+**Impact:** New OC- task series (OC-1 through OC-5) added as Wave 4. Studio workflow canvas, credentials, execution history, and agent library deprioritized (replaced by Kimi Claw). All existing Wave 1-3 work continues unchanged (body-side).
 
 ---
 
@@ -79,6 +88,11 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 | G-7 | In-game builder save-on-place | Cursor | D-6, G-0 |
 | G-8 | In-game event config form | Cursor | G-7 |
 | D-4 | Audit seed data + reconcile grants | Orchestrator | — |
+| OC-1 | BYOC Setup (install OpenClaw, connect Kimi Claw) | Human/Ops | — |
+| OC-2 | Webhook Bridge (WebhookBridge.ts) | Cursor | OC-1 |
+| OC-3 | Custom SKILL.md files (6 game skills) | Cursor | OC-1 |
+| OC-4 | NPC-to-OpenClaw agent mapping (migration 014) | Cursor | OC-2, OC-3 |
+| OC-5 | Studio OpenClaw integration (mode toggle, dashboard) | Lovable | OC-4 |
 
 ---
 
@@ -98,9 +112,15 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 - **Studio:** S-6 (Map Entity Browser, after D-6 — can start pre-gate)
 - **DB:** ~~D-5~~ **DONE** — migration 013 designed, ready to apply
 
-### Wave 3 — UNBLOCKED (D-5 done, G-2 done)
+### Wave 3 — UNBLOCKED (D-5 done, G-2 done) — body-side content pipeline
 - **Game:** G-3 (Content Store — apply migration 013, implement ContentStore.ts), then G-4 (Social Feed)
 - **Studio:** S-5 (Feed Integration, after G-4)
+
+### Wave 4 — OpenClaw Integration (parallel with Wave 3) — brain-side
+- **Ops:** OC-1 (BYOC Setup)
+- **Game:** OC-2 (Webhook Bridge) + OC-3 (SKILL.md Files) — after OC-1
+- **Game:** OC-4 (Config Schema + Migration 014) — after OC-2 + OC-3
+- **Studio:** OC-5 (OpenClaw UI Integration) — after OC-4
 
 ---
 
@@ -115,10 +135,10 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 ## Studio Repo Status
 
 - Application shell: Complete
-- Canvas / workflow builder: In development
+- Canvas / workflow builder: **DEPRIORITIZED** (replaced by Kimi Claw UI)
 - **Game integration: NPC Builder, Integrations, Dashboard stats — all MERGED to main**
 - Studio writes to Supabase correctly; game-side reading is the gap
-- Next Studio work: verify/polish merged code; S-4 held until foundation gate
+- Next Studio work: verify/polish merged code; S-4 held until foundation gate; OC-5 adds OpenClaw mode toggle
 
 ## Database Status
 
@@ -127,3 +147,4 @@ See [master.md](sprints/2026-02-studio-game-alignment/master.md) for full backlo
 - PostgREST: `public`, `studio`, `game` exposed
 - **Applied: migration 012 (map_entities + map_metadata)** — D-6 DONE
 - **Designed: migration 013 (npc_content + content_tags + npc_posts + recall_content RPC)** — D-5 DONE, Cursor to apply with G-3
+- **Planned: migration 014 (openclaw_agent_mode)** — adds `agent_mode`, `openclaw_agent_id`, `openclaw_webhook_url` to `agent_configs` (OC-4)

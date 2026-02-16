@@ -2,6 +2,7 @@
 
 > Cursor's view of the master sprint. Game repo (Open-RPG) + database tasks only.
 > Master: [master.md](master.md)
+> **Direction shift:** Architecture pivoting to brain/body split with OpenClaw. See [direction-shift brief](../../briefs/orchestrator/2026-02/direction-shift-openclaw-integration.md).
 > **One place for all tasks in order:** [.ai/tasks/sprint-2026-02-studio-game-alignment/README.md](../../../tasks/sprint-2026-02-studio-game-alignment/README.md)
 
 ---
@@ -32,6 +33,14 @@
 | G-3 | Content Store + Tagging | **UNBLOCKED** | TASK-019 | D-5 schema DONE; apply migration 013 + implement ContentStore.ts |
 | G-4 | Associative Recall + Social Feed | HELD (foundation gate) | TASK-020 | Brief TBD |
 
+## OpenClaw Integration Tasks (Wave 4 — parallel with Wave 3)
+
+| ID | Title | Status | Brief | Notes |
+|----|-------|--------|-------|-------|
+| OC-2 | Webhook Bridge | TODO | [Brief](../../briefs/cursor/2026-02/TASK-OC-2-webhook-bridge.md) | `WebhookBridge.ts` implementing `IAgentRunner`; POSTs to local OpenClaw |
+| OC-3 | Custom SKILL.md Files | TODO | [Brief](../../briefs/cursor/2026-02/TASK-OC-3-skill-md-files.md) | 6 SKILL.md files in `openclaw/skills/` matching game skill params |
+| OC-4 | NPC-Agent Mapping | TODO | [Brief](../../briefs/cursor/2026-02/TASK-OC-4-npc-agent-mapping.md) | Migration 014 + `AgentConfig` update + dual-mode registration |
+
 ## Order
 
 1. **G-0** first (**FOUNDATION BLOCKER**) — make AgentManager load NPC configs from `game.agent_configs` in Supabase (currently reads YAML only)
@@ -47,6 +56,11 @@
 11. **D-5** ~~in parallel with G-2~~ **DONE** — migration 013 designed and ready
 12. **G-3** **UNBLOCKED** (D-5 done, G-2 done) — apply migration 013 + implement ContentStore.ts
 13. **G-4** after G-3 — social feed reads from content store
+14. **OC-2** after OC-1 (ops setup) — WebhookBridge component (`src/agents/core/WebhookBridge.ts`)
+15. **OC-3** parallel with OC-2 (after OC-1) — 6 SKILL.md files in `openclaw/skills/`
+16. **OC-4** after OC-2 + OC-3 — migration 014 + `AgentConfig` update + dual-mode registration
+
+> Wave 3 (G-3/G-4 = body-side content) and Wave 4 (OC-2/OC-3/OC-4 = brain-side OpenClaw) share zero dependencies. Execute in parallel.
 
 ## Key Constraints
 
@@ -69,3 +83,9 @@
 - Tags are free-form lowercase strings — no controlled vocabulary, no pgvector embeddings for MVP.
 - `recall_content()` RPC does server-side tag-overlap query ranked by relevance then recency.
 - ContentStore follows SupabaseAgentMemory pattern: write-behind flush, graceful degradation, batch inserts.
+- WebhookBridge implements `IAgentRunner` — GameChannelAdapter and LaneQueue are unchanged.
+- Webhook response actions are validated against `config.skills` before execution.
+- `agent_mode` defaults to `'in-process'` — no NPC is forcibly migrated.
+- SKILL.md files live in `Open-RPG/openclaw/skills/` for version control, deployed to OpenClaw.
+- No game-side secrets (Supabase keys, etc.) in webhook payloads.
+- Only custom RPG SKILL.md files on game NPCs — no untrusted ClawHub skills (ClawHavoc mitigation).

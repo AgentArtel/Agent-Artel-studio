@@ -2,6 +2,7 @@
 
 > Lovable's view of the master sprint. Studio repo (Agent-Artel-studio) tasks only.
 > Master: [master.md](master.md)
+> **Direction shift:** Architecture pivoting to brain/body split with OpenClaw. See [direction-shift brief](../../briefs/orchestrator/2026-02/direction-shift-openclaw-integration.md).
 
 ---
 
@@ -15,6 +16,7 @@
 | S-4 | NPC Memory Viewer | TODO — unblocked, brief ready | [Brief](../../briefs/lovable/2026-02/TASK-S-4-npc-memory-viewer.md) |
 | S-5 | Lovable Feed Integration | TODO | Brief TBD (depends on game social feed) |
 | S-6 | Map Entity Browser | TODO | Browse `game.map_entities` per map, link ai-npc rows to NPC Builder; depends on D-6 |
+| OC-5 | Studio OpenClaw Integration | TODO | [Brief](../../briefs/lovable/2026-02/TASK-OC-5-studio-openclaw-integration.md) — NPC Builder mode toggle, OpenClaw fields, dashboard status |
 
 ## Order
 
@@ -22,6 +24,19 @@
 2. **S-4** is unblocked (S-1 merged) — NPC Memory Viewer is a tab inside the NPC detail view
 3. **S-6** after D-6 ships — Map Entity Browser reads `game.map_entities`, links ai-npc rows to NPC Builder for full config
 4. **S-5** after game finishes G-4 — social feed UI needs game data to render
+5. **OC-5** after OC-4 (migration 014 applied by Cursor) — add agent_mode toggle and OpenClaw fields to NPC Builder
+
+## Deprioritized Features (replaced by Kimi Claw)
+
+The following Studio features are deprioritized as of 2026-02-15. Kimi Claw provides equivalent functionality for OpenClaw-managed NPCs. These pages remain in the codebase but receive no further investment.
+
+| Feature | Page | Replacement |
+|---------|------|-------------|
+| Workflow Editor Canvas | WorkflowEditorPage.tsx (~1,044 lines) | Kimi Claw agent config UI |
+| Workflow List | WorkflowList.tsx | Kimi Claw agent list |
+| Credentials | Credentials.tsx | OpenClaw secret management |
+| Execution History | ExecutionHistory.tsx | Kimi Claw execution logs |
+| Agent Library | AgentLibrary.tsx | ClawHub skill marketplace |
 
 ## What's Already Built
 
