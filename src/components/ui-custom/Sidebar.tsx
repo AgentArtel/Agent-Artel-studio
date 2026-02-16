@@ -17,7 +17,8 @@ import {
   Map,
   Layers,
   ScrollText,
-  ClipboardList
+  ClipboardList,
+  Gamepad2
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -29,6 +30,7 @@ interface SidebarProps {
 }
 
 const navItems = [
+  { id: 'play-game', label: 'Play Game', icon: Gamepad2 },
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'workflows', label: 'Workflows', icon: Workflow },
   { id: 'npcs', label: 'NPCs', icon: Users },
