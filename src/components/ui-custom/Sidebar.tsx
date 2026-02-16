@@ -15,6 +15,7 @@ import {
   Users,
   Puzzle,
   Map,
+  Layers,
   ScrollText,
   ClipboardList
 } from 'lucide-react';
@@ -32,6 +33,7 @@ const navItems = [
   { id: 'workflows', label: 'Workflows', icon: Workflow },
   { id: 'npcs', label: 'NPCs', icon: Users },
   { id: 'map-agent', label: 'AI Map Agent', icon: Map },
+  { id: 'map-browser', label: 'Map Browser', icon: Layers },
   { id: 'game-scripts', label: 'Game Scripts', icon: ScrollText },
   { id: 'player-sessions', label: 'Player Sessions', icon: ClipboardList },
   { id: 'integrations', label: 'Integrations', icon: Puzzle },
