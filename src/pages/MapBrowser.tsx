@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { gameDb } from '@/lib/gameSchema';
-import { MapEntityCard } from '@/components/map-entities';
+import { MapEntityCard, EntityMiniMap } from '@/components/map-entities';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Layers, Bot, User, Map, Search } from 'lucide-react';
@@ -125,6 +125,22 @@ export const MapBrowser: React.FC<MapBrowserProps> = ({ onNavigate }) => {
           />
         </div>
       </div>
+
+      {/* Mini-maps per map */}
+      {!isLoading && mapOptions.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(selectedMap === 'all' ? mapOptions : [selectedMap]).map((mapId) => {
+            const mapEntities = entities.filter((e: any) => e.map_id === mapId);
+            return (
+              <EntityMiniMap
+                key={mapId}
+                mapId={mapId}
+                entities={mapEntities}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Entity grid */}
       {isLoading ? (
