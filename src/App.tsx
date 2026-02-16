@@ -19,11 +19,12 @@ import { MapBrowser } from '@/pages/MapBrowser';
 import { GameScripts } from '@/pages/GameScripts';
 import { PlayerSessions } from '@/pages/PlayerSessions';
 import { PlayGame } from '@/pages/PlayGame';
+import { Ideas } from '@/pages/Ideas';
 import { cn } from '@/lib/utils';
 
 const queryClient = new QueryClient();
 
-type Page = 'play-game' | 'dashboard' | 'workflows' | 'npcs' | 'map-agent' | 'map-browser' | 'game-scripts' | 'player-sessions' | 'integrations' | 'executions' | 'credentials' | 'templates' | 'settings' | 'editor' | 'showcase';
+type Page = 'play-game' | 'ideas' | 'dashboard' | 'workflows' | 'npcs' | 'map-agent' | 'map-browser' | 'game-scripts' | 'player-sessions' | 'integrations' | 'executions' | 'credentials' | 'templates' | 'settings' | 'editor' | 'showcase';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -44,6 +45,7 @@ const App = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'play-game': return <PlayGame onNavigate={onNavigate} />;
+      case 'ideas': return <Ideas onNavigate={onNavigate} />;
       case 'dashboard': return <Dashboard onNavigate={onNavigate} />;
       case 'workflows': return <WorkflowList onNavigate={onNavigate} />;
       case 'npcs': return <NpcBuilder onNavigate={onNavigate} />;
