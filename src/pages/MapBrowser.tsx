@@ -4,7 +4,7 @@ import { gameDb } from '@/lib/gameSchema';
 import { MapEntityCard, EntityMiniMap } from '@/components/map-entities';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { Layers, Bot, User, Map, Search } from 'lucide-react';
+import { Layers, Bot, User, Map, Search, Hammer, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface MapBrowserProps {
@@ -14,6 +14,7 @@ interface MapBrowserProps {
 export const MapBrowser: React.FC<MapBrowserProps> = ({ onNavigate }) => {
   const [selectedMap, setSelectedMap] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
 
   // Fetch maps
   const { data: maps = [], isLoading: loadingMaps } = useQuery({
@@ -40,16 +41,20 @@ export const MapBrowser: React.FC<MapBrowserProps> = ({ onNavigate }) => {
     if (selectedMap !== 'all') {
       result = result.filter((e: any) => e.map_id === selectedMap);
     }
+    if (sourceFilter !== 'all') {
+      result = result.filter((e: any) => e.source === sourceFilter);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter((e: any) =>
         e.display_name?.toLowerCase().includes(q) ||
         e.entity_type?.toLowerCase().includes(q) ||
-        e.tiled_class?.toLowerCase().includes(q)
+        e.tiled_class?.toLowerCase().includes(q) ||
+        e.template_id?.toLowerCase().includes(q)
       );
     }
     return result;
-  }, [entities, selectedMap, search]);
+  }, [entities, selectedMap, search, sourceFilter]);
 
   const totalEntities = filtered.length;
   const aiNpcs = filtered.filter((e: any) => e.entity_type === 'ai-npc' || e.ai_enabled).length;
@@ -61,6 +66,12 @@ export const MapBrowser: React.FC<MapBrowserProps> = ({ onNavigate }) => {
     const fromEntities = [...new Set(entities.map((e: any) => e.map_id))];
     return [...new Set([...fromMeta, ...fromEntities])].sort();
   }, [maps, entities]);
+
+  // Derive unique sources
+  const sourceOptions = useMemo(() => {
+    const sources = [...new Set(entities.map((e: any) => e.source).filter(Boolean))];
+    return sources.sort();
+  }, [entities]);
 
   const isLoading = loadingMaps || loadingEntities;
 
@@ -113,6 +124,37 @@ export const MapBrowser: React.FC<MapBrowserProps> = ({ onNavigate }) => {
             </button>
           ))}
         </div>
+
+        {/* Source filter */}
+        {sourceOptions.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] text-white/30 uppercase tracking-wider">Source:</span>
+            <button
+              onClick={() => setSourceFilter('all')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                sourceFilter === 'all'
+                  ? 'bg-accent/15 border-accent/30 text-accent-foreground'
+                  : 'border-white/10 text-white/50 hover:text-white hover:border-white/20'
+              }`}
+            >
+              All
+            </button>
+            {sourceOptions.map((src) => (
+              <button
+                key={src}
+                onClick={() => setSourceFilter(src)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                  sourceFilter === src
+                    ? 'bg-accent/15 border-accent/30 text-accent-foreground'
+                    : 'border-white/10 text-white/50 hover:text-white hover:border-white/20'
+                }`}
+              >
+                {src === 'builder' ? <Hammer className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                {src}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative sm:ml-auto sm:w-64">
@@ -171,6 +213,10 @@ export const MapBrowser: React.FC<MapBrowserProps> = ({ onNavigate }) => {
               tiledClass={entity.tiled_class}
               aiEnabled={entity.ai_enabled}
               agentConfigId={entity.agent_config_id}
+              source={entity.source}
+              templateId={entity.template_id}
+              behaviorConfig={entity.behavior_config}
+              metadata={entity.metadata}
               onViewNpc={() => onNavigate('npcs')}
             />
           ))}

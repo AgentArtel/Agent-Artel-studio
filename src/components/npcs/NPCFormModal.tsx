@@ -187,8 +187,8 @@ export const NPCFormModal: React.FC<NPCFormModalProps> = ({
         <div>
           <label className={labelCls}>Graphic</label>
           <select className={inputCls} value={graphic} onChange={(e) => setGraphic(e.target.value)}>
-            <option value="male">Male</option>
             <option value="female">Female</option>
+            <option value="hero">Hero</option>
           </select>
         </div>
         <div>
