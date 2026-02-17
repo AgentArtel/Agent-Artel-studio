@@ -12,6 +12,7 @@ export type GameDatabase = Database & {
           id: string;
           map_id: string;
           entity_type: string;
+          type_id: string | null;
           display_name: string;
           position_x: number;
           position_y: number;
@@ -22,13 +23,20 @@ export type GameDatabase = Database & {
           tools: string[];
           area_id: string | null;
           metadata: Record<string, unknown>;
+          behavior_config: Record<string, unknown>;
           agent_config_id: string | null;
+          template_id: string | null;
+          source: string | null;
+          is_interactive: boolean;
+          interaction_radius: number;
+          parent_entity_id: string | null;
           synced_at: string;
         };
         Insert: {
           id: string;
           map_id: string;
           entity_type: string;
+          type_id?: string | null;
           display_name: string;
           position_x: number;
           position_y: number;
@@ -39,13 +47,20 @@ export type GameDatabase = Database & {
           tools?: string[];
           area_id?: string | null;
           metadata?: Record<string, unknown>;
+          behavior_config?: Record<string, unknown>;
           agent_config_id?: string | null;
+          template_id?: string | null;
+          source?: string | null;
+          is_interactive?: boolean;
+          interaction_radius?: number;
+          parent_entity_id?: string | null;
           synced_at?: string;
         };
         Update: {
           id?: string;
           map_id?: string;
           entity_type?: string;
+          type_id?: string | null;
           display_name?: string;
           position_x?: number;
           position_y?: number;
@@ -56,7 +71,13 @@ export type GameDatabase = Database & {
           tools?: string[];
           area_id?: string | null;
           metadata?: Record<string, unknown>;
+          behavior_config?: Record<string, unknown>;
           agent_config_id?: string | null;
+          template_id?: string | null;
+          source?: string | null;
+          is_interactive?: boolean;
+          interaction_radius?: number;
+          parent_entity_id?: string | null;
           synced_at?: string;
         };
         Relationships: [];
@@ -82,6 +103,51 @@ export type GameDatabase = Database & {
           theme?: string | null;
           ambient?: string | null;
           synced_at?: string;
+        };
+        Relationships: [];
+      };
+      object_templates: {
+        Row: {
+          id: string;
+          name: string;
+          category: string;
+          base_entity_type: string;
+          default_sprite: string;
+          default_metadata: Record<string, unknown>;
+          default_behavior_config: Record<string, unknown>;
+          default_skills: string[];
+          icon: string;
+          description: string;
+          is_enabled: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          category: string;
+          base_entity_type: string;
+          default_sprite?: string;
+          default_metadata?: Record<string, unknown>;
+          default_behavior_config?: Record<string, unknown>;
+          default_skills?: string[];
+          icon?: string;
+          description?: string;
+          is_enabled?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          category?: string;
+          base_entity_type?: string;
+          default_sprite?: string;
+          default_metadata?: Record<string, unknown>;
+          default_behavior_config?: Record<string, unknown>;
+          default_skills?: string[];
+          icon?: string;
+          description?: string;
+          is_enabled?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };
